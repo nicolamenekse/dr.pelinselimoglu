@@ -66,7 +66,11 @@ export const verifyEmail = async (req, res) => {
 
     const jwtToken = signToken(user);
     setAuthCookie(res, jwtToken);
-    res.json({ message: 'E-posta doğrulandı', user: { id: user._id, name: user.name, email: user.email } });
+    res.json({ 
+      message: 'E-posta doğrulandı', 
+      token: jwtToken, // Token'ı response body'de de döndür
+      user: { id: user._id, name: user.name, email: user.email } 
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Sunucu hatası' });
@@ -109,7 +113,11 @@ export const login = async (req, res) => {
 
     const token = signToken(user);
     setAuthCookie(res, token);
-    res.json({ message: 'Giriş başarılı', user: { id: user._id, name: user.name, email: user.email } });
+    res.json({ 
+      message: 'Giriş başarılı', 
+      token: token, // Token'ı response body'de de döndür
+      user: { id: user._id, name: user.name, email: user.email } 
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Sunucu hatası' });
@@ -118,10 +126,8 @@ export const login = async (req, res) => {
 
 export const me = async (req, res) => {
   try {
-    const token = req.cookies?.[jwtCookieName];
-    if (!token) return res.status(401).json({ authenticated: false });
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.sub).select('name email isEmailVerified');
+    // Token already verified by middleware
+    const user = await User.findById(req.user.sub).select('name email isEmailVerified');
     if (!user) return res.status(401).json({ authenticated: false });
     res.json({ authenticated: true, user });
   } catch (err) {
