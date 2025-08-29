@@ -5,12 +5,14 @@ import { useRouter, useParams } from 'next/navigation'
 import Header from '@/components/Header'
 import { useAuthStore } from '@/stores/authStore'
 import { usePatientStore, Patient } from '@/stores/patientStore'
+import { useAppointmentStore } from '@/stores/appointmentStore'
 
 export default function EditPatientPage() {
   const router = useRouter()
   const params = useParams()
   const { user, checkAuth, isLoading: authLoading } = useAuthStore()
   const { getPatient, updatePatient } = usePatientStore()
+  const { addAppointment } = useAppointmentStore()
   
   const [isLoading, setIsLoading] = useState(false)
   const [activeStep, setActiveStep] = useState(1)
@@ -32,7 +34,13 @@ export default function EditPatientPage() {
     allergies: '',
     medications: '',
     medicalHistory: '',
-    notes: ''
+    notes: '',
+    hasAppointment: false,
+    appointmentDate: new Date().toISOString().split('T')[0],
+    appointmentTime: '09:00',
+    appointmentDuration: 60,
+    appointmentTreatment: '',
+    appointmentNotes: ''
   })
 
   // Treatment categories
@@ -74,7 +82,13 @@ export default function EditPatientPage() {
           allergies: foundPatient.allergies,
           medications: foundPatient.medications,
           medicalHistory: foundPatient.medicalHistory,
-          notes: foundPatient.notes
+          notes: foundPatient.notes,
+          hasAppointment: false,
+          appointmentDate: new Date().toISOString().split('T')[0],
+          appointmentTime: '09:00',
+          appointmentDuration: 60,
+          appointmentTreatment: '',
+          appointmentNotes: ''
         })
       } else {
         router.push('/patients?error=not-found')
@@ -162,6 +176,21 @@ export default function EditPatientPage() {
 
       // Update in store
       updatePatient(patient.id, updatedPatientData)
+
+      // Create appointment if requested
+      if (formData.hasAppointment) {
+        const appointmentData = {
+          patientId: patient.id,
+          patientName: formData.name.trim(),
+          date: formData.appointmentDate,
+          time: formData.appointmentTime,
+          duration: formData.appointmentDuration,
+          treatment: formData.appointmentTreatment || (formData.selectedTreatments.length > 0 ? formData.selectedTreatments[0] : 'Konsültasyon'),
+          notes: formData.appointmentNotes,
+          status: 'scheduled' as const
+        }
+        addAppointment(appointmentData)
+      }
 
       // Success - redirect to patient detail
       router.push(`/patients/${patient.id}?success=updated`)
@@ -391,6 +420,114 @@ export default function EditPatientPage() {
                     placeholder="Tedavi ile ilgili notlar..."
                   />
                 </div>
+                
+                {/* Randevu Bilgileri */}
+                <div className="border-t border-gray-200 pt-6">
+                  <div className="flex items-center space-x-3 mb-4">
+                    <input
+                      type="checkbox"
+                      id="hasAppointment"
+                      checked={formData.hasAppointment}
+                      onChange={(e) => setFormData(prev => ({ ...prev, hasAppointment: e.target.checked }))}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <label htmlFor="hasAppointment" className="text-lg font-medium text-gray-900">
+                      Hasta için randevu oluştur
+                    </label>
+                  </div>
+                  
+                  {formData.hasAppointment && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Randevu Tarihi *
+                        </label>
+                        <input
+                          type="date"
+                          value={formData.appointmentDate}
+                          onChange={(e) => setFormData(prev => ({ ...prev, appointmentDate: e.target.value }))}
+                          min={new Date().toISOString().split('T')[0]}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Randevu Saati *
+                        </label>
+                        <select
+                          value={formData.appointmentTime}
+                          onChange={(e) => setFormData(prev => ({ ...prev, appointmentTime: e.target.value }))}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
+                          {Array.from({ length: 20 }, (_, i) => {
+                            const hour = Math.floor(i / 2) + 9
+                            const minute = (i % 2) * 30
+                            const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
+                            return (
+                              <option key={time} value={time}>
+                                {time}
+                              </option>
+                            )
+                          })}
+                        </select>
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Süre (dakika) *
+                        </label>
+                        <select
+                          value={formData.appointmentDuration}
+                          onChange={(e) => setFormData(prev => ({ ...prev, appointmentDuration: parseInt(e.target.value) }))}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
+                          <option value={30}>30 dakika</option>
+                          <option value={45}>45 dakika</option>
+                          <option value={60}>60 dakika</option>
+                          <option value={90}>90 dakika</option>
+                          <option value={120}>120 dakika</option>
+                          <option value={180}>180 dakika</option>
+                        </select>
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          İşlem Türü *
+                        </label>
+                        <select
+                          value={formData.appointmentTreatment}
+                          onChange={(e) => setFormData(prev => ({ ...prev, appointmentTreatment: e.target.value }))}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
+                          <option value="">İşlem seçiniz</option>
+                          {formData.selectedTreatments.length > 0 ? (
+                            formData.selectedTreatments.map((treatment) => (
+                              <option key={treatment} value={treatment}>
+                                {treatment}
+                              </option>
+                            ))
+                          ) : (
+                            <option value="Konsültasyon">Konsültasyon</option>
+                          )}
+                        </select>
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Randevu Notları
+                        </label>
+                        <textarea
+                          value={formData.appointmentNotes}
+                          onChange={(e) => setFormData(prev => ({ ...prev, appointmentNotes: e.target.value }))}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          rows={2}
+                          placeholder="Randevu ile ilgili notlar..."
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           )}
@@ -554,6 +691,22 @@ export default function EditPatientPage() {
                     </div>
                   </div>
                 </div>
+                
+                {/* Appointment Summary */}
+                {formData.hasAppointment && (
+                  <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                    <h3 className="text-lg font-medium text-blue-900 mb-3">📅 Randevu Bilgileri</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                      <div><strong>Tarih:</strong> {new Date(formData.appointmentDate).toLocaleDateString('tr-TR')}</div>
+                      <div><strong>Saat:</strong> {formData.appointmentTime}</div>
+                      <div><strong>Süre:</strong> {formData.appointmentDuration} dakika</div>
+                      <div><strong>İşlem:</strong> {formData.appointmentTreatment || 'Belirtilmedi'}</div>
+                      {formData.appointmentNotes && (
+                        <div className="md:col-span-2"><strong>Notlar:</strong> {formData.appointmentNotes}</div>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {/* Additional Medical Info */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
