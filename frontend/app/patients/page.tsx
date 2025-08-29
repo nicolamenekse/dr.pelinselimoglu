@@ -10,7 +10,7 @@ import { usePatientStore, Patient } from '@/stores/patientStore'
 export default function PatientsPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { user, checkAuth } = useAuthStore()
+  const { user, checkAuth, isLoading } = useAuthStore()
   const { patients, deletePatient } = usePatientStore()
   
   const [searchTerm, setSearchTerm] = useState('')
@@ -25,10 +25,11 @@ export default function PatientsPage() {
   }, [checkAuth])
 
   useEffect(() => {
-    if (!user) {
+    // Sadece checkAuth tamamlandıktan sonra yönlendirme yap
+    if (!isLoading && !user) {
       router.push('/login')
     }
-  }, [user, router])
+  }, [user, isLoading, router])
 
   // Show success message if redirected from new patient
   const showSuccess = searchParams.get('success') === 'true'

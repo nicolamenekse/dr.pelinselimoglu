@@ -10,7 +10,7 @@ import { usePatientStore, Patient } from '@/stores/patientStore'
 export default function PatientDetailPage() {
   const router = useRouter()
   const params = useParams()
-  const { user, checkAuth } = useAuthStore()
+  const { user, checkAuth, isLoading } = useAuthStore()
   const { getPatient } = usePatientStore()
   
   const [patient, setPatient] = useState<Patient | null>(null)
@@ -21,10 +21,11 @@ export default function PatientDetailPage() {
   }, [checkAuth])
 
   useEffect(() => {
-    if (!user) {
+    // Sadece checkAuth tamamlandıktan sonra yönlendirme yap
+    if (!isLoading && !user) {
       router.push('/login')
     }
-  }, [user, router])
+  }, [user, isLoading, router])
 
   useEffect(() => {
     if (params.id && typeof params.id === 'string') {
@@ -37,7 +38,7 @@ export default function PatientDetailPage() {
     }
   }, [params.id, getPatient, router])
 
-  if (!user) {
+  if (isLoading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>

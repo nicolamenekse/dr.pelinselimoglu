@@ -6,19 +6,22 @@ import { useAuthStore } from '@/stores/authStore'
 
 export default function HomePage() {
   const router = useRouter()
-  const { user, checkAuth } = useAuthStore()
+  const { user, checkAuth, isLoading } = useAuthStore()
 
   useEffect(() => {
     checkAuth()
   }, [checkAuth])
 
   useEffect(() => {
-    if (user) {
-      router.push('/dashboard')
-    } else {
-      router.push('/login')
+    // Sadece checkAuth tamamlandıktan sonra yönlendirme yap
+    if (!isLoading) {
+      if (user) {
+        router.push('/dashboard')
+      } else {
+        router.push('/login')
+      }
     }
-  }, [user, router])
+  }, [user, isLoading, router])
 
   return (
     <div className="min-h-screen flex items-center justify-center">

@@ -9,7 +9,7 @@ import { usePatientStore, Patient } from '@/stores/patientStore'
 export default function EditPatientPage() {
   const router = useRouter()
   const params = useParams()
-  const { user, checkAuth } = useAuthStore()
+  const { user, checkAuth, isLoading: authLoading } = useAuthStore()
   const { getPatient, updatePatient } = usePatientStore()
   
   const [isLoading, setIsLoading] = useState(false)
@@ -48,10 +48,11 @@ export default function EditPatientPage() {
   }, [checkAuth])
 
   useEffect(() => {
-    if (!user) {
+    // Sadece checkAuth tamamlandıktan sonra yönlendirme yap
+    if (!authLoading && !user) {
       router.push('/login')
     }
-  }, [user, router])
+  }, [user, authLoading, router])
 
   useEffect(() => {
     if (params.id && typeof params.id === 'string') {

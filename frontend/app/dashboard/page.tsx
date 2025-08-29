@@ -11,7 +11,7 @@ import RecentPatients from '@/components/RecentPatients'
 
 export default function DashboardPage() {
   const router = useRouter()
-  const { user, isAuthenticated, checkAuth } = useAuthStore()
+  const { user, isAuthenticated, checkAuth, isLoading } = useAuthStore()
   const { patients } = usePatientStore()
 
   useEffect(() => {
@@ -19,12 +19,13 @@ export default function DashboardPage() {
   }, [checkAuth])
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    // Sadece checkAuth tamamlandıktan sonra yönlendirme yap
+    if (!isLoading && !isAuthenticated) {
       router.push('/login')
     }
-  }, [isAuthenticated, router])
+  }, [isAuthenticated, isLoading, router])
 
-  if (!user) {
+  if (isLoading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>

@@ -38,7 +38,7 @@ interface PatientFormData {
 
 export default function NewPatientPage() {
   const router = useRouter()
-  const { user, checkAuth } = useAuthStore()
+  const { user, checkAuth, isLoading: authLoading } = useAuthStore()
   const { addPatient } = usePatientStore()
   const [isLoading, setIsLoading] = useState(false)
   const [activeStep, setActiveStep] = useState(1)
@@ -96,10 +96,11 @@ export default function NewPatientPage() {
   }, [checkAuth])
 
   useEffect(() => {
-    if (!user) {
+    // Sadece checkAuth tamamlandıktan sonra yönlendirme yap
+    if (!authLoading && !user) {
       router.push('/login')
     }
-  }, [user, router])
+  }, [user, authLoading, router])
 
   const handleInputChange = (field: keyof PatientFormData, value: any) => {
     setFormData(prev => ({
