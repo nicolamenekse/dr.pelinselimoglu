@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Header from '@/components/Header'
 import { useAuthStore } from '@/stores/authStore'
+import { usePatientStore } from '@/stores/patientStore'
 
 interface TreatmentCategory {
   id: string
@@ -38,6 +39,7 @@ interface PatientFormData {
 export default function NewPatientPage() {
   const router = useRouter()
   const { user, checkAuth } = useAuthStore()
+  const { addPatient } = usePatientStore()
   const [isLoading, setIsLoading] = useState(false)
   const [activeStep, setActiveStep] = useState(1)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -152,18 +154,58 @@ export default function NewPatientPage() {
     setIsLoading(true)
     
     try {
-      // TODO: API call to save patient data
-      console.log('Patient data:', formData)
+      // Form validation
+      if (!formData.name.trim() || !formData.phone.trim()) {
+        throw new Error('Ad ve telefon alanları zorunludur')
+      }
+
+      // Convert files to base64 strings for storage (in real app, upload to server)
+      const beforePhotoUrls = await Promise.all(
+        formData.beforePhotos.map(file => fileToBase64(file))
+      )
+      const afterPhotoUrls = await Promise.all(
+        formData.afterPhotos.map(file => fileToBase64(file))
+      )
+
+      // Create patient data
+      const patientData = {
+        name: formData.name.trim(),
+        phone: formData.phone.trim(),
+        email: formData.email.trim(),
+        birthDate: formData.birthDate,
+        gender: formData.gender,
+        address: formData.address.trim(),
+        selectedTreatments: formData.selectedTreatments,
+        treatmentNotes: formData.treatmentNotes.trim(),
+        beforePhotos: beforePhotoUrls,
+        afterPhotos: afterPhotoUrls,
+        allergies: formData.allergies.trim(),
+        medications: formData.medications.trim(),
+        medicalHistory: formData.medicalHistory.trim(),
+        notes: formData.notes.trim()
+      }
+
+      // Save to store
+      addPatient(patientData)
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      
+      // Success - redirect to patients list
       router.push('/patients?success=true')
     } catch (error) {
       console.error('Error saving patient:', error)
+      alert(error instanceof Error ? error.message : 'Hasta kaydedilirken bir hata oluştu')
     } finally {
       setIsLoading(false)
     }
+  }
+
+  // Helper function to convert file to base64
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.readAsDataURL(file)
+      reader.onload = () => resolve(reader.result as string)
+      reader.onerror = error => reject(error)
+    })
   }
 
   if (!user) {
@@ -451,10 +493,16 @@ export default function NewPatientPage() {
                 <div className="bg-gray-50 rounded-lg p-4">
                   <h3 className="text-lg font-medium text-gray-900 mb-3">Hasta Bilgileri</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                    <div><strong>Ad Soyad:</strong> {formData.name}</div>
-                    <div><strong>Telefon:</strong> {formData.phone}</div>
+                    <div><strong>Ad Soyad:</strong> {formData.name || 'Belirtilmedi'}</div>
+                    <div><strong>Telefon:</strong> {formData.phone || 'Belirtilmedi'}</div>
                     <div><strong>E-posta:</strong> {formData.email || 'Belirtilmedi'}</div>
                     <div><strong>Cinsiyet:</strong> {formData.gender === 'female' ? 'Kadın' : 'Erkek'}</div>
+                    {formData.birthDate && (
+                      <div><strong>Doğum Tarihi:</strong> {new Date(formData.birthDate).toLocaleDateString('tr-TR')}</div>
+                    )}
+                    {formData.address && (
+                      <div className="md:col-span-2"><strong>Adres:</strong> {formData.address}</div>
+                    )}
                   </div>
                 </div>
 
@@ -472,6 +520,25 @@ export default function NewPatientPage() {
                   ) : (
                     <p className="text-gray-500">Henüz tedavi seçilmedi</p>
                   )}
+                  {formData.treatmentNotes && (
+                    <div className="mt-3">
+                      <strong>Tedavi Notları:</strong>
+                      <p className="text-sm text-gray-700 mt-1">{formData.treatmentNotes}</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Photo Summary */}
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h3 className="text-lg font-medium text-gray-900 mb-3">Fotoğraflar</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <strong>Öncesi:</strong> {formData.beforePhotos.length} fotoğraf
+                    </div>
+                    <div>
+                      <strong>Sonrası:</strong> {formData.afterPhotos.length} fotoğraf
+                    </div>
+                  </div>
                 </div>
 
                 {/* Additional Medical Info */}
