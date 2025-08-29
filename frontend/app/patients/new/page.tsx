@@ -149,8 +149,7 @@ export default function NewPatientPage() {
   const nextStep = () => setActiveStep(prev => Math.min(prev + 1, 4))
   const prevStep = () => setActiveStep(prev => Math.max(prev - 1, 1))
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = async () => {
     setIsLoading(true)
     
     try {
@@ -257,7 +256,7 @@ export default function NewPatientPage() {
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-8">
+        <div className="space-y-8">
           {/* Step 1: Personal Information */}
           {activeStep === 1 && (
             <div className="bg-white rounded-lg shadow p-6">
@@ -621,7 +620,8 @@ export default function NewPatientPage() {
                 </button>
               ) : (
                 <button
-                  type="submit"
+                  type="button"
+                  onClick={handleSubmit}
                   disabled={isLoading}
                   className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
                 >
@@ -630,7 +630,7 @@ export default function NewPatientPage() {
               )}
             </div>
           </div>
-        </form>
+        </div>
       </main>
     </div>
   )
