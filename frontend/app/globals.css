@@ -24,4 +24,11 @@
   .form-card {
     @apply bg-white p-8 rounded-xl shadow-lg max-w-md w-full mx-auto;
   }
+  
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
 }

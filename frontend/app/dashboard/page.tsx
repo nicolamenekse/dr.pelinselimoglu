@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/stores/authStore'
 import { usePatientStore } from '@/stores/patientStore'
+import { useAppointmentStore } from '@/stores/appointmentStore'
 import Header from '@/components/Header'
 import StatsCard from '@/components/StatsCard'
 import QuickActions from '@/components/QuickActions'
@@ -13,6 +14,7 @@ export default function DashboardPage() {
   const router = useRouter()
   const { user, isAuthenticated, checkAuth, isLoading } = useAuthStore()
   const { patients } = usePatientStore()
+  const { appointments, getUpcomingAppointments } = useAppointmentStore()
 
   useEffect(() => {
     checkAuth()
@@ -38,6 +40,12 @@ export default function DashboardPage() {
   const femalePatients = patients.filter(p => p.gender === 'female').length
   const malePatients = patients.filter(p => p.gender === 'male').length
   const patientsWithPhotos = patients.filter(p => p.beforePhotos.length > 0 || p.afterPhotos.length > 0).length
+  
+  // Appointment statistics
+  const totalAppointments = appointments.length
+  const todayAppointments = appointments.filter(apt => apt.date === new Date().toISOString().split('T')[0]).length
+  const upcomingAppointments = getUpcomingAppointments().length
+  const confirmedAppointments = appointments.filter(apt => apt.status === 'confirmed').length
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -66,39 +74,39 @@ export default function DashboardPage() {
           />
           
           <StatsCard
-            title="Kadın Hastalar"
-            value={femalePatients}
+            title="Toplam Randevu"
+            value={totalAppointments}
             icon={
               <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             }
-            color="purple"
-            change={`${totalPatients > 0 ? Math.round((femalePatients / totalPatients) * 100) : 0}%`}
+            color="blue"
+            change={`${todayAppointments} bugün`}
           />
           
           <StatsCard
-            title="Erkek Hastalar"
-            value={malePatients}
+            title="Yaklaşan Randevu"
+            value={upcomingAppointments}
             icon={
               <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             }
             color="green"
-            change={`${totalPatients > 0 ? Math.round((malePatients / totalPatients) * 100) : 0}%`}
+            change={`${confirmedAppointments} onaylandı`}
           />
           
           <StatsCard
-            title="Fotoğraflı Kayıtlar"
-            value={patientsWithPhotos}
+            title="Bugünkü Randevu"
+            value={todayAppointments}
             icon={
               <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             }
             color="orange"
-            change={`${totalPatients > 0 ? Math.round((patientsWithPhotos / totalPatients) * 100) : 0}%`}
+            change={`${upcomingAppointments} yaklaşan`}
           />
         </div>
 
