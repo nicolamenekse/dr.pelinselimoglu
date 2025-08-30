@@ -59,6 +59,12 @@ export default function Header() {
             >
               Randevular
             </Link>
+            <Link 
+              href="/reports" 
+              className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+            >
+              Raporlar
+            </Link>
           </nav>
 
           {/* User Menu */}
@@ -125,6 +131,13 @@ export default function Header() {
                 onClick={() => setIsMenuOpen(false)}
               >
                 Randevular
+              </Link>
+              <Link
+                href="/reports"
+                className="text-gray-700 hover:text-blue-600 block px-3 py-2 rounded-md text-base font-medium"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Raporlar
               </Link>
               <div className="pt-4 pb-3 border-t border-gray-200">
                 <div className="px-3 py-2 text-sm text-gray-500">

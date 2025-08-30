@@ -120,6 +120,8 @@ export default function DashboardPage() {
           </div>
         </div>
 
+
+
         {/* Additional Info */}
         <div className="mt-8 bg-white rounded-lg shadow p-6">
           <h3 className="text-lg font-medium text-gray-900 mb-4">Sistem Bilgileri</h3>
