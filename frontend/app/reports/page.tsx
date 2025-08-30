@@ -54,9 +54,9 @@ export default function ReportsPage() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">📊 Raporlar & İstatistikler</h1>
-              <p className="mt-2 text-gray-600">
-                Klinik performansınızı analiz edin ve hasta verilerinizi detaylı olarak inceleyin.
-              </p>
+                             <p className="mt-2 text-gray-600">
+                 Dr.Pelin Selimoğlu Estetik Güzellik performansınızı analiz edin ve hasta verilerinizi detaylı olarak inceleyin.
+               </p>
             </div>
             <Link
               href="/dashboard"

@@ -50,6 +50,9 @@ export default function VerifyEmailPage() {
       <div className="min-h-screen flex items-center justify-center p-4">
         <div className="form-card text-center">
           <div className="mb-6">
+            <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center mx-auto mb-4">
+              <span className="text-white font-bold text-lg">PS</span>
+            </div>
             <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100">
               <svg className="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -59,7 +62,7 @@ export default function VerifyEmailPage() {
           
           <h2 className="text-2xl font-bold text-gray-900 mb-4">E-posta Doğrulandı!</h2>
           <p className="text-gray-600 mb-6">
-            Hesabınız başarıyla doğrulandı. Dashboard'a yönlendiriliyorsunuz...
+            Dr.Pelin Selimoğlu Estetik Güzellik hesabınız başarıyla doğrulandı. Dashboard'a yönlendiriliyorsunuz...
           </p>
           
           <div className="animate-pulse">
@@ -75,6 +78,9 @@ export default function VerifyEmailPage() {
       <div className="min-h-screen flex items-center justify-center p-4">
         <div className="form-card text-center">
           <div className="mb-6">
+            <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center mx-auto mb-4">
+              <span className="text-white font-bold text-lg">PS</span>
+            </div>
             <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100">
               <svg className="h-8 w-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
