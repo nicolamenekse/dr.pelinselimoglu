@@ -301,95 +301,157 @@ export default function NewPatientPage() {
         <div className="space-y-8">
           {/* Step 1: Personal Information */}
           {activeStep === 1 && (
-            <div className="bg-gradient-to-br from-slate-800 to-slate-700 rounded-3xl shadow-2xl border border-slate-600 p-8">
-              <div className="flex items-center mb-8">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mr-4 shadow-lg">
-                  <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="bg-gradient-to-br from-slate-800/50 to-slate-700/50 backdrop-blur-md rounded-3xl shadow-2xl border border-slate-600/50 p-8">
+              {/* Header */}
+              <div className="text-center mb-10">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-3xl mb-6 shadow-2xl">
+                  <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
                 </div>
-                <h2 className="text-2xl font-bold text-white font-serif">Kişisel Bilgiler</h2>
+                <h2 className="text-3xl font-bold text-white font-serif mb-3">Kişisel Bilgiler</h2>
+                <p className="text-slate-300 text-lg">Hasta bilgilerini eksiksiz olarak doldurun</p>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-semibold text-slate-300 mb-3">
+              {/* Form Grid */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Ad Soyad */}
+                <div className="group">
+                  <label className="block text-sm font-semibold text-slate-300 mb-3 flex items-center">
+                    <svg className="w-4 h-4 mr-2 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
                     Ad Soyad *
                   </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.name}
-                    onChange={(e) => handleInputChange('name', e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
-                    placeholder="Hasta adı ve soyadı"
-                  />
+                  <div className="relative">
+                    <input
+                      type="text"
+                      required
+                      value={formData.name}
+                      onChange={(e) => handleInputChange('name', e.target.value)}
+                      className="w-full px-5 py-4 bg-slate-700/80 border border-slate-600/50 rounded-2xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-400/50 transition-all duration-300 text-lg backdrop-blur-sm group-hover:bg-slate-700/90"
+                      placeholder="Hasta adı ve soyadı"
+                    />
+                    <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-blue-500/10 to-cyan-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+                  </div>
                 </div>
                 
-                <div>
-                  <label className="block text-sm font-semibold text-slate-300 mb-3">
+                {/* Telefon */}
+                <div className="group">
+                  <label className="block text-sm font-semibold text-slate-300 mb-3 flex items-center">
+                    <svg className="w-4 h-4 mr-2 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                    </svg>
                     Telefon *
                   </label>
-                  <input
-                    type="tel"
-                    required
-                    value={formData.phone}
-                    onChange={(e) => handleInputChange('phone', e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
-                    placeholder="+90 555 123 4567"
-                  />
+                  <div className="relative">
+                    <input
+                      type="tel"
+                      required
+                      value={formData.phone}
+                      onChange={(e) => handleInputChange('phone', e.target.value)}
+                      className="w-full px-5 py-4 bg-slate-700/80 border border-slate-600/50 rounded-2xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-400/50 transition-all duration-300 text-lg backdrop-blur-sm group-hover:bg-slate-700/90"
+                      placeholder="+90 555 123 4567"
+                    />
+                    <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-green-500/10 to-emerald-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+                  </div>
                 </div>
                 
-                <div>
-                  <label className="block text-sm font-semibold text-slate-300 mb-3">
+                {/* E-posta */}
+                <div className="group">
+                  <label className="block text-sm font-semibold text-slate-300 mb-3 flex items-center">
+                    <svg className="w-4 h-4 mr-2 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
                     E-posta
                   </label>
-                  <input
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => handleInputChange('email', e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
-                    placeholder="hasta@email.com"
-                  />
+                  <div className="relative">
+                    <input
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => handleInputChange('email', e.target.value)}
+                      className="w-full px-5 py-4 bg-slate-700/80 border border-slate-600/50 rounded-2xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-400/50 transition-all duration-300 text-lg backdrop-blur-sm group-hover:bg-slate-700/90"
+                      placeholder="hasta@email.com"
+                    />
+                    <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-purple-500/10 to-pink-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+                  </div>
                 </div>
                 
-                <div>
-                  <label className="block text-sm font-semibold text-slate-300 mb-3">
+                {/* Doğum Tarihi */}
+                <div className="group">
+                  <label className="block text-sm font-semibold text-slate-300 mb-3 flex items-center">
+                    <svg className="w-4 h-4 mr-2 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
                     Doğum Tarihi
                   </label>
-                  <input
-                    type="date"
-                    value={formData.birthDate}
-                    onChange={(e) => handleInputChange('birthDate', e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
-                  />
+                  <div className="relative">
+                    <input
+                      type="date"
+                      value={formData.birthDate}
+                      onChange={(e) => handleInputChange('birthDate', e.target.value)}
+                      className="w-full px-5 py-4 bg-slate-700/80 border border-slate-600/50 rounded-2xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-400/50 transition-all duration-300 text-lg backdrop-blur-sm group-hover:bg-slate-700/90"
+                    />
+                    <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-amber-500/10 to-orange-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+                  </div>
                 </div>
                 
-                <div>
-                  <label className="block text-sm font-semibold text-slate-300 mb-3">
+                {/* Cinsiyet */}
+                <div className="group">
+                  <label className="block text-sm font-semibold text-slate-300 mb-3 flex items-center">
+                    <svg className="w-4 h-4 mr-2 text-pink-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
                     Cinsiyet
                   </label>
-                  <select
-                    value={formData.gender}
-                    onChange={(e) => handleInputChange('gender', e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
-                  >
-                    <option value="female">Kadın</option>
-                    <option value="male">Erkek</option>
-                  </select>
+                  <div className="relative">
+                    <select
+                      value={formData.gender}
+                      onChange={(e) => handleInputChange('gender', e.target.value)}
+                      className="w-full px-5 py-4 bg-slate-700/80 border border-slate-600/50 rounded-2xl text-white focus:outline-none focus:ring-2 focus:ring-pink-500/50 focus:border-pink-400/50 transition-all duration-300 text-lg backdrop-blur-sm group-hover:bg-slate-700/90 appearance-none cursor-pointer"
+                    >
+                      <option value="female">👩 Kadın</option>
+                      <option value="male">👨 Erkek</option>
+                    </select>
+                    <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-pink-500/10 to-rose-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+                    <div className="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                      <svg className="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  </div>
                 </div>
                 
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-semibold text-slate-300 mb-3">
+                {/* Adres - Full Width */}
+                <div className="lg:col-span-2 group">
+                  <label className="block text-sm font-semibold text-slate-300 mb-3 flex items-center">
+                    <svg className="w-4 h-4 mr-2 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
                     Adres
                   </label>
-                  <textarea
-                    value={formData.address}
-                    onChange={(e) => handleInputChange('address', e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 resize-none"
-                    rows={3}
-                    placeholder="Hasta adresi"
-                  />
+                  <div className="relative">
+                    <textarea
+                      value={formData.address}
+                      onChange={(e) => handleInputChange('address', e.target.value)}
+                      className="w-full px-5 py-4 bg-slate-700/80 border border-slate-600/50 rounded-2xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-400/50 transition-all duration-300 text-lg backdrop-blur-sm group-hover:bg-slate-700/90 resize-none"
+                      rows={4}
+                      placeholder="Hasta adresi (sokak, mahalle, ilçe, şehir)"
+                    />
+                    <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-cyan-500/10 to-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Progress Indicator */}
+              <div className="mt-10 text-center">
+                <div className="inline-flex items-center space-x-2 bg-slate-700/50 rounded-full px-6 py-3 backdrop-blur-sm border border-slate-600/30">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                  <span className="text-slate-300 text-sm font-medium">1 / 4 Adım</span>
+                  <div className="w-2 h-2 bg-slate-600 rounded-full"></div>
+                  <div className="w-2 h-2 bg-slate-600 rounded-full"></div>
+                  <div className="w-2 h-2 bg-slate-600 rounded-full"></div>
                 </div>
               </div>
             </div>
