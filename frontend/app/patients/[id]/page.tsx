@@ -6,12 +6,14 @@ import Link from 'next/link'
 import Header from '@/components/Header'
 import { useAuthStore } from '@/stores/authStore'
 import { usePatientStore, Patient } from '@/stores/patientStore'
+import { useAppointmentStore } from '@/stores/appointmentStore'
 
 export default function PatientDetailPage() {
   const router = useRouter()
   const params = useParams()
   const { user, checkAuth, isLoading } = useAuthStore()
   const { getPatient } = usePatientStore()
+  const { getAppointmentsByPatient } = useAppointmentStore()
   
   const [patient, setPatient] = useState<Patient | null>(null)
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null)
@@ -285,11 +287,30 @@ export default function PatientDetailPage() {
                 <div className="mb-6">
                   <h3 className="text-lg font-semibold text-gray-800 mb-4">Seçilen Tedaviler</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {patient.selectedTreatments.map((treatment, index) => (
-                      <div key={index} className="bg-gradient-to-r from-blue-50 to-indigo-50 px-4 py-3 rounded-lg border border-blue-200 shadow-sm">
-                        <span className="text-blue-800 font-medium">{treatment}</span>
-                      </div>
-                    ))}
+                    {patient.selectedTreatments.map((treatment, index) => {
+                      // Bu tedavi için randevu bilgisi var mı kontrol et
+                      const appointments = getAppointmentsByPatient(patient.id)
+                      const treatmentAppointment = appointments?.find(app => 
+                        app.treatment === treatment && app.status === 'scheduled'
+                      )
+                      
+                      return (
+                        <div key={index} className="bg-gradient-to-r from-blue-50 to-indigo-50 px-4 py-3 rounded-lg border border-blue-200 shadow-sm">
+                          <div className="flex flex-col">
+                            <span className="text-blue-800 font-medium">{treatment}</span>
+                            {treatmentAppointment && (
+                              <span className="text-blue-600 text-sm mt-1">
+                                📅 {new Date(treatmentAppointment.date).toLocaleDateString('tr-TR', {
+                                  day: '2-digit',
+                                  month: '2-digit',
+                                  year: 'numeric'
+                                })}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
                   </div>
                 </div>
               ) : (
@@ -306,6 +327,87 @@ export default function PatientDetailPage() {
                   </div>
                 </div>
               )}
+            </div>
+
+            {/* Appointments Section */}
+            <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
+                <span className="mr-3">📅</span>
+                Randevu Bilgileri
+              </h2>
+              {(() => {
+                const appointments = getAppointmentsByPatient(patient.id)
+                if (appointments && appointments.length > 0) {
+                  return (
+                    <div className="space-y-4">
+                      {appointments.map((appointment, index) => (
+                        <div key={index} className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg border border-green-200 shadow-sm">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center space-x-3">
+                              <span className="text-green-600">
+                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                              </span>
+                              <span className="font-semibold text-green-800">
+                                {new Date(appointment.date).toLocaleDateString('tr-TR', {
+                                  weekday: 'long',
+                                  year: 'numeric',
+                                  month: 'long',
+                                  day: 'numeric'
+                                })}
+                              </span>
+                            </div>
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                              appointment.status === 'scheduled' ? 'bg-blue-100 text-blue-800' :
+                              appointment.status === 'completed' ? 'bg-green-100 text-green-800' :
+                              appointment.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                              'bg-gray-100 text-gray-800'
+                            }`}>
+                              {appointment.status === 'scheduled' ? 'Planlandı' :
+                               appointment.status === 'completed' ? 'Tamamlandı' :
+                               appointment.status === 'cancelled' ? 'İptal Edildi' :
+                               appointment.status}
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <span className="text-gray-600 font-medium">Saat:</span>
+                              <span className="ml-2 font-semibold text-gray-800">{appointment.time}</span>
+                            </div>
+                            <div>
+                              <span className="text-gray-600 font-medium">Süre:</span>
+                              <span className="ml-2 font-semibold text-gray-800">{appointment.duration} dakika</span>
+                            </div>
+                            <div>
+                              <span className="text-gray-600 font-medium">İşlem:</span>
+                              <span className="ml-2 font-semibold text-gray-800">{appointment.treatment}</span>
+                            </div>
+                            {appointment.notes && (
+                              <div className="md:col-span-2">
+                                <span className="text-gray-600 font-medium">Notlar:</span>
+                                <span className="ml-2 text-gray-800">{appointment.notes}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )
+                } else {
+                  return (
+                    <div className="text-center py-8">
+                      <div className="text-gray-400 mb-3">
+                        <svg className="w-16 h-16 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                      <p className="text-gray-500 text-lg font-medium">Henüz randevu bulunmuyor</p>
+                      <p className="text-gray-400 text-sm mt-1">Bu hasta için henüz randevu oluşturulmamış</p>
+                    </div>
+                  )
+                }
+              })()}
             </div>
 
             {/* Photos Section */}
