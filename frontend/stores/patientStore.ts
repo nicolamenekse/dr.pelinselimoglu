@@ -68,9 +68,44 @@ export const usePatientStore = create<PatientStore>()(
       },
 
       deletePatient: (id) => {
-        set((state) => ({
-          patients: state.patients.filter((patient) => patient.id !== id),
-        }))
+        set((state) => {
+          // Hasta silinmeden önce, o hastaya ait randevuları da sil
+          const patientToDelete = state.patients.find(patient => patient.id === id)
+          
+          if (patientToDelete) {
+            // LocalStorage'dan appointment store'u al ve güncelle
+            try {
+              const appointmentStorage = localStorage.getItem('appointment-storage')
+              if (appointmentStorage) {
+                const appointmentData = JSON.parse(appointmentStorage)
+                if (appointmentData.state && appointmentData.state.appointments) {
+                  // Bu hastaya ait randevuları filtrele
+                  const updatedAppointments = appointmentData.state.appointments.filter(
+                    (apt: any) => apt.patientId !== id
+                  )
+                  
+                  // LocalStorage'ı güncelle
+                  localStorage.setItem('appointment-storage', JSON.stringify({
+                    ...appointmentData,
+                    state: {
+                      ...appointmentData.state,
+                      appointments: updatedAppointments
+                    }
+                  }))
+                  
+                  console.log(`Hasta ${patientToDelete.name} silindi. ${appointmentData.state.appointments.length - updatedAppointments.length} randevu da silindi.`)
+                }
+              }
+            } catch (error) {
+              console.warn('Randevular silinirken hata oluştu:', error)
+            }
+          }
+          
+          // Hastayı sil
+          return {
+            patients: state.patients.filter((patient) => patient.id !== id),
+          }
+        })
       },
 
       getPatient: (id) => {

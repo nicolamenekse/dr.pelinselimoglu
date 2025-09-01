@@ -6,9 +6,16 @@ import { Appointment } from '@/stores/appointmentStore'
 interface AppointmentListProps {
   appointments: Appointment[]
   onAppointmentSelect: (appointment: Appointment) => void
+  onEditAppointment: (appointment: Appointment) => void
+  onDeleteAppointment: (appointment: Appointment) => void
 }
 
-export default function AppointmentList({ appointments, onAppointmentSelect }: AppointmentListProps) {
+export default function AppointmentList({ 
+  appointments, 
+  onAppointmentSelect, 
+  onEditAppointment, 
+  onDeleteAppointment 
+}: AppointmentListProps) {
   const [filterStatus, setFilterStatus] = useState<'all' | 'scheduled' | 'confirmed' | 'completed' | 'cancelled'>('all')
   const [sortBy, setSortBy] = useState<'date' | 'time' | 'patientName' | 'treatment'>('date')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
@@ -131,6 +138,18 @@ export default function AppointmentList({ appointments, onAppointmentSelect }: A
     return `${hours} sa ${remainingMinutes} dk`
   }
 
+  const handleEditClick = (e: React.MouseEvent, appointment: Appointment) => {
+    e.stopPropagation()
+    onEditAppointment(appointment)
+  }
+
+  const handleDeleteClick = (e: React.MouseEvent, appointment: Appointment) => {
+    e.stopPropagation()
+    if (confirm(`${appointment.patientName} adlı hastanın ${appointment.date} tarihli randevusunu silmek istediğinizden emin misiniz?`)) {
+      onDeleteAppointment(appointment)
+    }
+  }
+
   return (
     <div className="bg-white rounded-2xl shadow-lg border border-gray-100">
       {/* Filtreler ve Sıralama */}
@@ -202,7 +221,7 @@ export default function AppointmentList({ appointments, onAppointmentSelect }: A
             {filteredAndSortedAppointments.map((appointment) => (
               <div
                 key={appointment.id}
-                className="p-6 hover:bg-gray-50 transition-colors duration-200 cursor-pointer"
+                className="p-6 hover:bg-gray-50 transition-colors duration-200 cursor-pointer group"
                 onClick={() => onAppointmentSelect(appointment)}
               >
                 <div className="flex items-start justify-between">
@@ -250,7 +269,7 @@ export default function AppointmentList({ appointments, onAppointmentSelect }: A
                     </div>
                   </div>
 
-                  {/* Sağ Taraf - Durum ve İkon */}
+                  {/* Sağ Taraf - Durum, İkon ve Aksiyonlar */}
                   <div className="flex items-center space-x-3">
                     <div className="text-right">
                       <div className="text-sm text-gray-500">
@@ -263,6 +282,29 @@ export default function AppointmentList({ appointments, onAppointmentSelect }: A
                     
                     <div className="flex items-center justify-center w-10 h-10 bg-gray-100 rounded-full">
                       {getStatusIcon(appointment.status)}
+                    </div>
+
+                    {/* Aksiyon Butonları */}
+                    <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                      <button
+                        onClick={(e) => handleEditClick(e, appointment)}
+                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors duration-200"
+                        title="Düzenle"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                      </button>
+                      
+                      <button
+                        onClick={(e) => handleDeleteClick(e, appointment)}
+                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200"
+                        title="Sil"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
                     </div>
                   </div>
                 </div>
