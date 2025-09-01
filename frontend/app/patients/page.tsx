@@ -182,21 +182,22 @@ export default function PatientsPage() {
     return result
   }
 
-  const formatAppointmentInfo = (patientId: string) => {
+    const formatAppointmentInfo = (patientId: string) => {
     const patientAppointments = getPatientAppointments(patientId)
     
-
+    
     
     if (!patientAppointments || patientAppointments.length === 0) {
       return {
         hasAppointments: false,
-        text: "Randevu bulunmuyor",
+        text: "Randevu yok",
         nextAppointment: null,
-        isUrgent: false
+        isUrgent: false,
+        completedTreatments: []
       }
     }
 
-    // En yakın randevuyu bul (gelecek veya geçmiş)
+    // Sadece gelecekteki randevuları kontrol et
     const now = new Date()
     const upcomingAppointments = patientAppointments
       .filter(apt => {
@@ -220,6 +221,34 @@ export default function PatientsPage() {
         }
       })
 
+    // Geçmiş randevulardan son 2'sini al (tedaviler bölümü için)
+    const pastAppointments = patientAppointments
+      .filter(apt => {
+        if (!apt.date || !apt.time) return false
+        try {
+          const aptDate = new Date(apt.date + 'T' + apt.time)
+          return aptDate <= now && apt.status !== 'cancelled'
+        } catch (error) {
+          console.error('Date parsing error:', error, apt)
+          return false
+        }
+      })
+      .sort((a, b) => {
+        try {
+          const dateA = new Date(a.date + 'T' + a.time)
+          const dateB = new Date(b.date + 'T' + b.time)
+          return dateB.getTime() - dateA.getTime()
+        } catch (error) {
+          console.error('Sort error:', error)
+          return 0
+        }
+      })
+      .slice(0, 2)
+      .map(apt => ({
+        date: apt.date,
+        treatment: apt.treatment
+      }))
+
     if (upcomingAppointments.length > 0) {
       const nextAppointment = upcomingAppointments[0]
       const daysUntilAppointment = Math.ceil((new Date(nextAppointment.date + 'T' + nextAppointment.time).getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
@@ -229,51 +258,19 @@ export default function PatientsPage() {
         text: `${new Date(nextAppointment.date).toLocaleDateString('tr-TR')} - ${nextAppointment.time} - ${nextAppointment.treatment}`,
         nextAppointment: nextAppointment,
         isUrgent: daysUntilAppointment <= 3,
-        upcomingAppointments: upcomingAppointments
+        upcomingAppointments: upcomingAppointments,
+        completedTreatments: pastAppointments
       }
     } else {
-      // Geçmiş randevular varsa
-      const pastAppointments = patientAppointments
-        .filter(apt => {
-          if (!apt.date || !apt.time) return false
-          try {
-            const aptDate = new Date(apt.date + 'T' + apt.time)
-            return aptDate <= now || apt.status === 'cancelled'
-          } catch (error) {
-            console.error('Date parsing error:', error, apt)
-            return false
-          }
-        })
-        .sort((a, b) => {
-          try {
-            const dateA = new Date(a.date + 'T' + a.time)
-            const dateB = new Date(b.date + 'T' + b.time)
-            return dateB.getTime() - dateA.getTime()
-          } catch (error) {
-            console.error('Sort error:', error)
-            return 0
-          }
-        })
-
-      if (pastAppointments.length > 0) {
-        const lastAppointment = pastAppointments[0]
-        return {
-          hasAppointments: true,
-          text: `${new Date(lastAppointment.date).toLocaleDateString('tr-TR')} - ${lastAppointment.time} - ${lastAppointment.treatment}`,
-          nextAppointment: lastAppointment,
-          isUrgent: false,
-          upcomingAppointments: []
-        }
+      // Gelecekte randevu yok
+      return {
+        hasAppointments: false,
+        text: "Randevu yok",
+        nextAppointment: null,
+        isUrgent: false,
+        upcomingAppointments: [],
+        completedTreatments: pastAppointments
       }
-    }
-
-    // Eğer hiç randevu bulunamazsa (status kontrolü nedeniyle), yine de randevular var
-    return {
-      hasAppointments: true,
-      text: `${patientAppointments.length} randevu bulundu`,
-      nextAppointment: patientAppointments[0],
-      isUrgent: false,
-      upcomingAppointments: []
     }
   }
 
@@ -468,9 +465,7 @@ export default function PatientsPage() {
                     <th className="px-8 py-6 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
                       💊 Tedaviler
                     </th>
-                    <th className="px-8 py-6 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
-                      📸 Fotoğraflar
-                    </th>
+                    
                     <th className="px-8 py-6 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
                       📅 Randevu Tarihi
                     </th>
@@ -523,37 +518,37 @@ export default function PatientsPage() {
                           </Link>
                         </td>
                         
-                        <td className="px-8 py-6">
-                          <Link
-                            href={`/patients/${patient.id}`}
-                            className="block"
-                          >
-                            <div className="flex flex-wrap gap-2">
-                              {getTreatmentBadges(patient.selectedTreatments)}
-                              {patient.selectedTreatments.length > 3 && (
-                                <span className="inline-block px-3 py-1 text-xs bg-slate-600/50 text-slate-300 rounded-lg border border-slate-500/50">
-                                  +{patient.selectedTreatments.length - 3}
-                                </span>
-                              )}
-                            </div>
-                          </Link>
-                        </td>
+                                                 <td className="px-8 py-6">
+                           <Link
+                             href={`/patients/${patient.id}`}
+                             className="block"
+                           >
+                                                           <div className="space-y-3">
+                                {/* Planlanan Tedaviler */}
+                                <div className="flex flex-wrap gap-2">
+                                  {getTreatmentBadges(patient.selectedTreatments)}
+                                  {patient.selectedTreatments.length > 3 && (
+                                    <span className="inline-block px-3 py-1 text-xs bg-slate-600/50 text-slate-300 rounded-lg border border-slate-500/50">
+                                      +{patient.selectedTreatments.length - 3}
+                                    </span>
+                                  )}
+                                </div>
+                                
+                                {/* Gerçekleştirilen İşlemler */}
+                                {appointmentInfo.completedTreatments && appointmentInfo.completedTreatments.length > 0 && (
+                                  <div className="flex flex-wrap gap-2">
+                                    {appointmentInfo.completedTreatments.map((treatment, index) => (
+                                      <span key={index} className="inline-block px-3 py-1 text-xs bg-emerald-500/20 text-emerald-300 rounded-lg font-medium border border-emerald-400/30">
+                                        {treatment.treatment}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                           </Link>
+                         </td>
                         
-                        <td className="px-8 py-6 whitespace-nowrap">
-                          <Link
-                            href={`/patients/${patient.id}`}
-                            className="block"
-                          >
-                            <div className="flex space-x-3">
-                              <span className="inline-flex items-center px-3 py-1 rounded-xl text-xs font-medium bg-gradient-to-r from-blue-500/20 to-blue-600/20 text-blue-300 border border-blue-400/30">
-                                📷 {patient.beforePhotos.length} Öncesi
-                              </span>
-                              <span className="inline-flex items-center px-3 py-1 rounded-xl text-xs font-medium bg-gradient-to-r from-emerald-500/20 to-emerald-600/20 text-emerald-300 border border-emerald-400/30">
-                                📷 {patient.afterPhotos.length} Sonrası
-                              </span>
-                            </div>
-                          </Link>
-                        </td>
+                        
                         
                         <td className="px-8 py-6 whitespace-nowrap text-sm">
                           <Link
@@ -570,27 +565,6 @@ export default function PatientsPage() {
                                   }`}>
                                     {appointmentInfo.text}
                                   </div>
-                                  {(() => {
-                                    // Sadece gelecekteki randevuları göster (ana randevu hariç)
-                                    const futureAppointments = appointmentInfo.upcomingAppointments?.filter(apt => 
-                                      apt.id !== appointmentInfo.nextAppointment?.id
-                                    ) || []
-                                    
-                                    return futureAppointments.length > 0 ? (
-                                      <div className="mt-2 space-y-1">
-                                        {futureAppointments.slice(0, 2).map((apt, index) => (
-                                          <div key={index} className="text-xs text-slate-400 bg-slate-700/30 rounded-lg px-2 py-1 border border-slate-600/30">
-                                            {new Date(apt.date).toLocaleDateString('tr-TR')} - {apt.time} - {apt.treatment}
-                                          </div>
-                                        ))}
-                                        {futureAppointments.length > 2 && (
-                                          <div className="text-xs text-slate-500 italic">
-                                            +{futureAppointments.length - 2} randevu daha...
-                                          </div>
-                                        )}
-                                      </div>
-                                    ) : null
-                                  })()}
                                 </div>
                               ) : (
                                 <div className="text-slate-400 italic">Randevu bulunmuyor</div>
@@ -599,30 +573,33 @@ export default function PatientsPage() {
                           </Link>
                         </td>
                         
-                        <td className="px-8 py-6 whitespace-nowrap text-right text-sm font-medium">
-                          <div className="flex items-center justify-end space-x-4">
-                            <div className="text-blue-400 group-hover:text-blue-300 font-semibold transition-colors duration-200">
-                              👁️ Görüntüle
-                            </div>
-                            <Link
-                              href={`/patients/${patient.id}/edit`}
-                              onClick={(e) => e.stopPropagation()}
-                              className="text-emerald-400 hover:text-emerald-300 font-semibold hover:underline transition-colors duration-200"
-                            >
-                              ✏️ Düzenle
-                            </Link>
-                            <button
-                              onClick={(e) => {
-                                e.preventDefault()
-                                e.stopPropagation()
-                                handleDeletePatient(patient.id, patient.name)
-                              }}
-                              className="text-red-400 hover:text-red-300 font-semibold hover:underline transition-colors duration-200"
-                            >
-                              🗑️ Sil
-                            </button>
-                          </div>
-                        </td>
+                                                 <td className="px-8 py-6 whitespace-nowrap text-right text-sm font-medium">
+                           <div className="flex items-center justify-end space-x-3">
+                             <Link
+                               href={`/patients/${patient.id}/edit`}
+                               onClick={(e) => e.stopPropagation()}
+                               className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white text-sm font-medium rounded-lg hover:from-emerald-600 hover:to-emerald-700 transition-all duration-300 shadow-md hover:shadow-lg transform hover:scale-105"
+                             >
+                               <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                               </svg>
+                               Düzenle
+                             </Link>
+                             <button
+                               onClick={(e) => {
+                                 e.preventDefault()
+                                 e.stopPropagation()
+                                 handleDeletePatient(patient.id, patient.name)
+                               }}
+                               className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white text-sm font-medium rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-300 shadow-md hover:shadow-lg transform hover:scale-105"
+                             >
+                               <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                               </svg>
+                               Sil
+                             </button>
+                           </div>
+                         </td>
                       </tr>
                     )
                   })}
@@ -677,74 +654,60 @@ export default function PatientsPage() {
                                 ? 'text-orange-300 bg-orange-500/20 px-3 py-2 rounded-lg border border-orange-400/30' 
                                 : 'text-white'
                             }`}>
-                              {appointmentInfo.hasAppointments ? appointmentInfo.text : "Randevu bulunmuyor"}
+                              {appointmentInfo.hasAppointments ? appointmentInfo.text : "Randevu yok"}
                             </div>
-                            {(() => {
-                              // Sadece gelecekteki randevuları göster (ana randevu hariç)
-                              const futureAppointments = appointmentInfo.upcomingAppointments?.filter(apt => 
-                                apt.id !== appointmentInfo.nextAppointment?.id
-                              ) || []
-                              
-                              return futureAppointments.length > 0 ? (
-                                <div className="mt-2 space-y-1">
-                                  {futureAppointments.slice(0, 2).map((apt, index) => (
-                                    <div key={index} className="text-xs text-slate-400 bg-slate-700/30 rounded-lg px-2 py-1 border border-slate-600/30">
-                                      {new Date(apt.date).toLocaleDateString('tr-TR')} - {apt.time} - {apt.treatment}
-                                    </div>
-                                  ))}
-                                  {futureAppointments.length > 2 && (
-                                    <div className="text-xs text-slate-500 italic">
-                                      +{futureAppointments.length - 2} randevu daha...
-                                    </div>
-                                  )}
-                                </div>
-                              ) : null
-                            })()}
                           </div>
                         </div>
                       </div>
                       
-                      <div className="mb-6">
-                        <h4 className="text-sm font-semibold text-slate-300 mb-3">💊 Tedaviler</h4>
-                        <div className="flex flex-wrap gap-2">
-                          {getTreatmentBadges(patient.selectedTreatments)}
-                        </div>
-                      </div>
+                                             <div className="mb-6">
+                         <h4 className="text-sm font-semibold text-slate-300 mb-3">💊 Tedaviler</h4>
+                                                   <div className="space-y-3">
+                            {/* Planlanan Tedaviler */}
+                            <div className="flex flex-wrap gap-2">
+                              {getTreatmentBadges(patient.selectedTreatments)}
+                            </div>
+                            
+                            {/* Gerçekleştirilen İşlemler */}
+                            {appointmentInfo.completedTreatments && appointmentInfo.completedTreatments.length > 0 && (
+                              <div className="flex flex-wrap gap-2">
+                                {appointmentInfo.completedTreatments.map((treatment, index) => (
+                                  <span key={index} className="text-xs bg-emerald-500/20 text-emerald-300 rounded-lg px-3 py-1 font-medium border border-emerald-400/30">
+                                    {treatment.treatment}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                       </div>
                       
-                      <div className="mb-6">
-                        <h4 className="text-sm font-semibold text-slate-300 mb-3">📸 Fotoğraflar</h4>
-                        <div className="flex space-x-3">
-                          <span className="px-3 py-1 text-xs bg-gradient-to-r from-blue-500/20 to-blue-600/20 text-blue-300 rounded-xl border border-blue-400/30">
-                            {patient.beforePhotos.length} Öncesi
-                          </span>
-                          <span className="px-3 py-1 text-xs bg-gradient-to-r from-emerald-500/20 to-emerald-600/20 text-emerald-300 rounded-xl border border-emerald-400/30">
-                            {patient.afterPhotos.length} Sonrası
-                          </span>
-                        </div>
-                      </div>
                       
-                      <div className="flex space-x-3 pt-6 border-t border-slate-600/50">
-                        <div className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white text-center py-3 px-4 rounded-xl text-sm font-medium group-hover:from-blue-500 group-hover:to-blue-600 transition-all duration-300 shadow-lg">
-                          👁️ Görüntüle
-                        </div>
-                        <Link
-                          href={`/patients/${patient.id}/edit`}
-                          onClick={(e) => e.stopPropagation()}
-                          className="flex-1 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white text-center py-3 px-4 rounded-xl text-sm font-medium hover:from-emerald-700 hover:to-emerald-800 transition-all duration-300 shadow-lg hover:shadow-xl"
-                        >
-                          ✏️ Düzenle
-                        </Link>
-                        <button
-                          onClick={(e) => {
-                            e.preventDefault()
-                            e.stopPropagation()
-                            handleDeletePatient(patient.id, patient.name)
-                          }}
-                          className="flex-1 bg-gradient-to-r from-red-600 to-red-700 text-white text-center py-3 px-4 rounded-xl text-sm font-medium hover:from-red-700 hover:to-red-800 transition-all duration-300 shadow-lg hover:shadow-xl"
-                        >
-                          🗑️ Sil
-                        </button>
-                      </div>
+                      
+                                             <div className="flex space-x-3 pt-6 border-t border-slate-600/50">
+                         <Link
+                           href={`/patients/${patient.id}/edit`}
+                           onClick={(e) => e.stopPropagation()}
+                           className="flex-1 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white text-center py-3 px-4 rounded-xl text-sm font-medium hover:from-emerald-600 hover:to-emerald-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+                         >
+                           <svg className="w-4 h-4 mr-2 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.586a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                           </svg>
+                           Düzenle
+                         </Link>
+                         <button
+                           onClick={(e) => {
+                             e.preventDefault()
+                             e.stopPropagation()
+                             handleDeletePatient(patient.id, patient.name)
+                           }}
+                           className="flex-1 bg-gradient-to-r from-red-500 to-red-600 text-white text-center py-3 px-4 rounded-xl text-sm font-medium hover:from-red-600 hover:to-red-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+                         >
+                           <svg className="w-4 h-4 mr-2 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                           </svg>
+                           Sil
+                         </button>
+                       </div>
                     </Link>
                   )
                 })}
