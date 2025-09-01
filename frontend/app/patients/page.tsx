@@ -456,20 +456,19 @@ export default function PatientsPage() {
               <table className="min-w-full divide-y divide-slate-600/50">
                 <thead className="bg-gradient-to-r from-slate-750/50 to-slate-700/50">
                   <tr>
-                    <th className="px-8 py-6 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
+                    <th className="w-1/4 px-8 py-6 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
                       👤 Hasta
                     </th>
-                    <th className="px-8 py-6 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
+                    <th className="w-1/6 px-8 py-6 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
                       📞 İletişim
                     </th>
-                    <th className="px-8 py-6 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
+                    <th className="w-1/4 px-8 py-6 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
                       💊 Tedaviler
                     </th>
-                    
-                    <th className="px-8 py-6 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
+                    <th className="w-1/6 px-8 py-6 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
                       📅 Randevu Tarihi
                     </th>
-                    <th className="px-8 py-6 text-right text-xs font-bold text-slate-300 uppercase tracking-wider">
+                    <th className="w-1/6 px-8 py-6 text-right text-xs font-bold text-slate-300 uppercase tracking-wider">
                       ⚙️ İşlemler
                     </th>
                   </tr>
@@ -518,7 +517,7 @@ export default function PatientsPage() {
                           </Link>
                         </td>
                         
-                                                 <td className="px-8 py-6">
+                                                 <td className="px-8 py-6 whitespace-nowrap">
                            <Link
                              href={`/patients/${patient.id}`}
                              className="block"
@@ -609,15 +608,15 @@ export default function PatientsPage() {
           ) : (
             /* Grid View */
             <div className="p-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-stretch">
                 {filteredPatients.map((patient) => {
                   const appointmentInfo = formatAppointmentInfo(patient.id)
                   return (
-                    <Link
-                      key={patient.id}
-                      href={`/patients/${patient.id}`}
-                      className="block bg-gradient-to-br from-slate-750/50 to-slate-700/50 border border-slate-600/50 rounded-2xl p-6 shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-105 backdrop-blur-md group cursor-pointer"
-                    >
+                                         <Link
+                       key={patient.id}
+                       href={`/patients/${patient.id}`}
+                       className="block bg-gradient-to-br from-slate-750/50 to-slate-700/50 border border-slate-600/50 rounded-2xl p-6 shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-105 backdrop-blur-md group cursor-pointer h-full flex flex-col"
+                     >
                       <div className="flex items-center mb-6">
                         <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl flex items-center justify-center shadow-lg">
                           <span className="text-xl font-bold text-white">
@@ -635,7 +634,7 @@ export default function PatientsPage() {
                         </div>
                       </div>
                       
-                      <div className="space-y-4 mb-6">
+                                             <div className="space-y-4 mb-6 flex-1">
                         <div className="flex items-center text-sm">
                           <span className="text-slate-400 w-16">📞</span>
                           <span className="font-semibold text-white">{patient.phone}</span>
@@ -660,9 +659,9 @@ export default function PatientsPage() {
                         </div>
                       </div>
                       
-                                             <div className="mb-6">
+                                                                                           <div className="mb-6 flex-1">
                          <h4 className="text-sm font-semibold text-slate-300 mb-3">💊 Tedaviler</h4>
-                                                   <div className="space-y-3">
+                         <div className="space-y-3">
                             {/* Planlanan Tedaviler */}
                             <div className="flex flex-wrap gap-2">
                               {getTreatmentBadges(patient.selectedTreatments)}
@@ -678,12 +677,12 @@ export default function PatientsPage() {
                                 ))}
                               </div>
                             )}
-                          </div>
+                         </div>
                        </div>
                       
                       
                       
-                                             <div className="flex space-x-3 pt-6 border-t border-slate-600/50">
+                                               <div className="flex space-x-3 pt-6 border-t border-slate-600/50 mt-auto">
                          <Link
                            href={`/patients/${patient.id}/edit`}
                            onClick={(e) => e.stopPropagation()}
