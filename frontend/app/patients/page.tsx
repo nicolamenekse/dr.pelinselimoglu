@@ -13,7 +13,7 @@ export default function PatientsPage() {
   const searchParams = useSearchParams()
   const { user, checkAuth, isLoading } = useAuthStore()
   const { patients, deletePatient } = usePatientStore()
-  const { appointments, getAppointmentsByPatient } = useAppointmentStore()
+  const { appointments, getAppointmentsByPatient, syncAppointmentsWithPatients } = useAppointmentStore()
   
   const [searchTerm, setSearchTerm] = useState('')
   const [filterGender, setFilterGender] = useState<'all' | 'female' | 'male'>('all')
@@ -32,6 +32,37 @@ export default function PatientsPage() {
       router.push('/login')
     }
   }, [user, isLoading, router])
+
+    // Randevu verilerini yükle ve kontrol et
+  useEffect(() => {
+    if (user && patients.length > 0) {
+      console.log('Total appointments in store:', appointments.length)
+      console.log('All appointments:', appointments)
+      
+      // Tüm randevuların patientId'lerini kontrol et
+      const allPatientIds = appointments.map(apt => apt.patientId)
+      const uniquePatientIds = Array.from(new Set(allPatientIds))
+      console.log('All unique patientIds in appointments:', uniquePatientIds)
+      
+      // Her hasta için randevu verilerini yükle
+      patients.forEach(patient => {
+        const patientAppointments = getAppointmentsByPatient(patient.id)
+        console.log(`Patient ${patient.id} (${patient.name}) appointments:`, patientAppointments)
+        console.log(`Patient ID type:`, typeof patient.id, `Value:`, patient.id)
+        
+        // Bu hasta ID'sinin randevularda olup olmadığını kontrol et
+        const hasMatchingAppointments = appointments.some(apt => apt.patientId === patient.id)
+        console.log(`Patient ${patient.name} has matching appointments:`, hasMatchingAppointments)
+        
+        if (appointments.length > 0) {
+          console.log(`First appointment patientId:`, appointments[0]?.patientId, `Type:`, typeof appointments[0]?.patientId)
+        }
+      })
+      
+      // Randevu-hasta senkronizasyonunu yap
+      syncAppointmentsWithPatients(patients)
+    }
+  }, [user, patients, appointments, getAppointmentsByPatient, syncAppointmentsWithPatients])
 
   // Show success message if redirected from new patient
   const showSuccess = searchParams.get('success') === 'true'
@@ -138,17 +169,30 @@ export default function PatientsPage() {
   }
 
   const getPatientAppointments = (patientId: string) => {
-    return getAppointmentsByPatient(patientId)
+    // Artık sadece patientId ile eşleştirme yap
+    // Senkronizasyon sayesinde tüm randevular doğru patientId'ye sahip olacak
+    const result = getAppointmentsByPatient(patientId)
+    
+    if (result.length > 0) {
+      console.log(`✅ Found ${result.length} appointments for patient ${patientId}`)
+    } else {
+      console.log(`ℹ️ No appointments found for patient ${patientId}`)
+    }
+    
+    return result
   }
 
   const formatAppointmentInfo = (patientId: string) => {
     const patientAppointments = getPatientAppointments(patientId)
     
-    if (patientAppointments.length === 0) {
+
+    
+    if (!patientAppointments || patientAppointments.length === 0) {
       return {
         hasAppointments: false,
         text: "Randevu bulunmuyor",
-        nextAppointment: null
+        nextAppointment: null,
+        isUrgent: false
       }
     }
 
@@ -156,41 +200,69 @@ export default function PatientsPage() {
     const now = new Date()
     const upcomingAppointments = patientAppointments
       .filter(apt => {
-        const aptDate = new Date(apt.date + 'T' + apt.time)
-        return aptDate > now && apt.status !== 'cancelled'
+        if (!apt.date || !apt.time) return false
+        try {
+          const aptDate = new Date(apt.date + 'T' + apt.time)
+          return aptDate > now && apt.status !== 'cancelled'
+        } catch (error) {
+          console.error('Date parsing error:', error, apt)
+          return false
+        }
       })
       .sort((a, b) => {
-        const dateA = new Date(a.date + 'T' + a.time)
-        const dateB = new Date(b.date + 'T' + b.time)
-        return dateA.getTime() - dateB.getTime()
+        try {
+          const dateA = new Date(a.date + 'T' + a.time)
+          const dateB = new Date(b.date + 'T' + b.time)
+          return dateA.getTime() - dateB.getTime()
+        } catch (error) {
+          console.error('Sort error:', error)
+          return 0
+        }
       })
 
     if (upcomingAppointments.length > 0) {
       const nextAppointment = upcomingAppointments[0]
+      const daysUntilAppointment = Math.ceil((new Date(nextAppointment.date + 'T' + nextAppointment.time).getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+      
       return {
         hasAppointments: true,
-        text: `${new Date(nextAppointment.date).toLocaleDateString('tr-TR')} - ${nextAppointment.time} (Yaklaşan)`,
-        nextAppointment: nextAppointment
+        text: `${new Date(nextAppointment.date).toLocaleDateString('tr-TR')} - ${nextAppointment.time} - ${nextAppointment.treatment}`,
+        nextAppointment: nextAppointment,
+        isUrgent: daysUntilAppointment <= 3,
+        upcomingAppointments: upcomingAppointments
       }
     } else {
       // Geçmiş randevular varsa
       const pastAppointments = patientAppointments
         .filter(apt => {
-          const aptDate = new Date(apt.date + 'T' + apt.time)
-          return aptDate <= now || apt.status === 'cancelled'
+          if (!apt.date || !apt.time) return false
+          try {
+            const aptDate = new Date(apt.date + 'T' + apt.time)
+            return aptDate <= now || apt.status === 'cancelled'
+          } catch (error) {
+            console.error('Date parsing error:', error, apt)
+            return false
+          }
         })
         .sort((a, b) => {
-          const dateA = new Date(a.date + 'T' + a.time)
-          const dateB = new Date(b.date + 'T' + b.time)
-          return dateB.getTime() - dateA.getTime()
+          try {
+            const dateA = new Date(a.date + 'T' + a.time)
+            const dateB = new Date(b.date + 'T' + b.time)
+            return dateB.getTime() - dateA.getTime()
+          } catch (error) {
+            console.error('Sort error:', error)
+            return 0
+          }
         })
 
       if (pastAppointments.length > 0) {
         const lastAppointment = pastAppointments[0]
         return {
           hasAppointments: true,
-          text: `${new Date(lastAppointment.date).toLocaleDateString('tr-TR')} - ${lastAppointment.time} (Geçmiş)`,
-          nextAppointment: lastAppointment
+          text: `${new Date(lastAppointment.date).toLocaleDateString('tr-TR')} - ${lastAppointment.time} - ${lastAppointment.treatment}`,
+          nextAppointment: lastAppointment,
+          isUrgent: false,
+          upcomingAppointments: []
         }
       }
     }
@@ -199,7 +271,9 @@ export default function PatientsPage() {
     return {
       hasAppointments: true,
       text: `${patientAppointments.length} randevu bulundu`,
-      nextAppointment: patientAppointments[0]
+      nextAppointment: patientAppointments[0],
+      isUrgent: false,
+      upcomingAppointments: []
     }
   }
 
@@ -489,19 +563,29 @@ export default function PatientsPage() {
                             <div className="text-center">
                               {appointmentInfo.hasAppointments ? (
                                 <div>
-                                  <div className="font-semibold text-white group-hover:text-blue-300 transition-colors duration-300">{appointmentInfo.text}</div>
+                                  <div className={`font-semibold group-hover:text-blue-300 transition-colors duration-300 ${
+                                    appointmentInfo.isUrgent 
+                                      ? 'text-orange-300 bg-orange-500/20 px-3 py-2 rounded-lg border border-orange-400/30' 
+                                      : 'text-white'
+                                  }`}>
+                                    {appointmentInfo.text}
+                                  </div>
                                   {(() => {
-                                    const patientAppointments = getPatientAppointments(patient.id)
-                                    return patientAppointments.length > 0 ? (
+                                    // Sadece gelecekteki randevuları göster (ana randevu hariç)
+                                    const futureAppointments = appointmentInfo.upcomingAppointments?.filter(apt => 
+                                      apt.id !== appointmentInfo.nextAppointment?.id
+                                    ) || []
+                                    
+                                    return futureAppointments.length > 0 ? (
                                       <div className="mt-2 space-y-1">
-                                        {patientAppointments.slice(0, 3).map((apt, index) => (
+                                        {futureAppointments.slice(0, 2).map((apt, index) => (
                                           <div key={index} className="text-xs text-slate-400 bg-slate-700/30 rounded-lg px-2 py-1 border border-slate-600/30">
                                             {new Date(apt.date).toLocaleDateString('tr-TR')} - {apt.time} - {apt.treatment}
                                           </div>
                                         ))}
-                                        {patientAppointments.length > 3 && (
+                                        {futureAppointments.length > 2 && (
                                           <div className="text-xs text-slate-500 italic">
-                                            +{patientAppointments.length - 3} randevu daha...
+                                            +{futureAppointments.length - 2} randevu daha...
                                           </div>
                                         )}
                                       </div>
@@ -588,21 +672,29 @@ export default function PatientsPage() {
                         <div className="flex items-start text-sm">
                           <span className="text-slate-400 w-16 mt-1">📅</span>
                           <div className="flex-1">
-                            <div className="font-semibold text-white">
+                            <div className={`font-semibold ${
+                              appointmentInfo.isUrgent 
+                                ? 'text-orange-300 bg-orange-500/20 px-3 py-2 rounded-lg border border-orange-400/30' 
+                                : 'text-white'
+                            }`}>
                               {appointmentInfo.hasAppointments ? appointmentInfo.text : "Randevu bulunmuyor"}
                             </div>
                             {(() => {
-                              const patientAppointments = getPatientAppointments(patient.id)
-                              return patientAppointments.length > 0 ? (
+                              // Sadece gelecekteki randevuları göster (ana randevu hariç)
+                              const futureAppointments = appointmentInfo.upcomingAppointments?.filter(apt => 
+                                apt.id !== appointmentInfo.nextAppointment?.id
+                              ) || []
+                              
+                              return futureAppointments.length > 0 ? (
                                 <div className="mt-2 space-y-1">
-                                  {patientAppointments.slice(0, 3).map((apt, index) => (
+                                  {futureAppointments.slice(0, 2).map((apt, index) => (
                                     <div key={index} className="text-xs text-slate-400 bg-slate-700/30 rounded-lg px-2 py-1 border border-slate-600/30">
                                       {new Date(apt.date).toLocaleDateString('tr-TR')} - {apt.time} - {apt.treatment}
                                     </div>
                                   ))}
-                                  {patientAppointments.length > 3 && (
+                                  {futureAppointments.length > 2 && (
                                     <div className="text-xs text-slate-500 italic">
-                                      +{patientAppointments.length - 3} randevu daha...
+                                      +{futureAppointments.length - 2} randevu daha...
                                     </div>
                                   )}
                                 </div>
