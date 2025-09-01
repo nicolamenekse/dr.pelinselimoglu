@@ -444,50 +444,54 @@ export default function NewPatientPage() {
                   
                   <div className="space-y-6">
                     {treatmentCategories.map((category) => (
-                      <div key={category.id} className="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-2xl p-6 border border-indigo-200 hover:shadow-lg transition-all duration-300">
-                        <h3 className="text-lg font-bold text-indigo-800 mb-4 flex items-center">
-                          <span className="mr-3 text-2xl">{getCategoryIcon(category.id)}</span>
-                          {category.name}
-                        </h3>
-                        <div className="grid grid-cols-1 gap-3">
-                          {category.treatments.map((treatment) => (
-                            <div key={treatment} className="group">
-                              <div className="flex items-center justify-between">
-                                <button
-                                  type="button"
-                                  onClick={() => handleTreatmentToggle(treatment)}
-                                  className={`flex-1 text-left py-3 px-4 rounded-xl transition-all duration-300 cursor-pointer font-medium text-sm ${
-                                    formData.selectedTreatments.includes(treatment)
-                                      ? 'bg-gradient-to-r from-indigo-500 to-blue-500 text-white shadow-lg transform scale-105'
-                                      : 'bg-white text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 hover:shadow-md hover:transform hover:scale-102 border border-indigo-200'
-                                  }`}
-                                >
-                                  <span>{treatment}</span>
-                                </button>
-                                
-                                {formData.selectedTreatments.includes(treatment) && (
-                                  <div className="flex flex-col space-y-2 ml-3">
-                                    <button
-                                      type="button"
-                                      onClick={() => addToSameDayTreatments(treatment)}
-                                      className="px-3 py-1 text-xs bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-lg hover:from-emerald-600 hover:to-green-600 hover:scale-105 transition-all duration-200 font-medium shadow-sm"
-                                    >
-                                      🕐 Aynı Gün
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => addToAppointments(treatment)}
-                                      className="px-3 py-1 text-xs bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:from-purple-600 hover:to-pink-600 hover:scale-105 transition-all duration-200 font-medium shadow-sm"
-                                    >
-                                      📅 Randevu
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
+                                             <div key={category.id} className="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-2xl p-6 border border-indigo-200 transition-all duration-300 hover:shadow-lg">
+                         <h3 className="text-lg font-bold text-indigo-800 mb-4 flex items-center">
+                           <span className="mr-3 text-2xl">{getCategoryIcon(category.id)}</span>
+                           {category.name}
+                         </h3>
+                         <div className="grid grid-cols-1 gap-3">
+                           {category.treatments.map((treatment) => (
+                             <div key={treatment} className="group">
+                               <div className="flex items-center justify-between">
+                                 <button
+                                   type="button"
+                                   onClick={() => handleTreatmentToggle(treatment)}
+                                   className={`flex-1 text-left py-3 px-4 rounded-xl transition-all duration-300 cursor-pointer font-medium text-sm ${
+                                     formData.sameDayTreatments.includes(treatment)
+                                       ? 'bg-gradient-to-r from-emerald-500 to-green-500 text-white shadow-lg transform scale-105'
+                                       : formData.appointments.some(apt => apt.treatment === treatment)
+                                         ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg transform scale-105'
+                                         : formData.selectedTreatments.includes(treatment)
+                                           ? 'bg-gradient-to-r from-indigo-500 to-blue-500 text-white shadow-lg transform scale-105'
+                                           : 'bg-white text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 hover:shadow-md hover:transform hover:scale-102 border border-indigo-200'
+                                   }`}
+                                 >
+                                   <span>{treatment}</span>
+                                 </button>
+                                 
+                                 {formData.selectedTreatments.includes(treatment) && (
+                                   <div className="flex flex-col space-y-2 ml-3">
+                                     <button
+                                       type="button"
+                                       onClick={() => addToSameDayTreatments(treatment)}
+                                       className="px-3 py-1 text-xs bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-lg hover:from-emerald-600 hover:to-green-600 hover:scale-105 transition-all duration-200 font-medium shadow-sm"
+                                     >
+                                       🕐 Aynı Gün
+                                     </button>
+                                     <button
+                                       type="button"
+                                       onClick={() => addToAppointments(treatment)}
+                                       className="px-3 py-1 text-xs bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:from-purple-600 hover:to-pink-600 hover:scale-105 transition-all duration-200 font-medium shadow-sm"
+                                     >
+                                       📅 Randevu
+                                     </button>
+                                   </div>
+                                 )}
+                               </div>
+                             </div>
+                           ))}
+                         </div>
+                       </div>
                     ))}
                   </div>
                 </section>
