@@ -64,6 +64,20 @@ export default function AppointmentsPage() {
     setSelectedAppointment(null)
   }
 
+  const handleEditAppointment = (appointment: Appointment) => {
+    setSelectedAppointment(appointment)
+    setShowForm(true)
+  }
+
+  const handleDeleteAppointment = (appointment: Appointment) => {
+    // Randevu silme işlemi
+    const { deleteAppointment } = useAppointmentStore.getState()
+    deleteAppointment(appointment.id)
+    
+    // Başarı mesajı göster
+    alert(`${appointment.patientName} adlı hastanın randevusu başarıyla silindi.`)
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
       <Header />
@@ -172,11 +186,15 @@ export default function AppointmentsPage() {
                 selectedDate={selectedDate}
                 onDateSelect={handleDateSelect}
                 onAppointmentSelect={handleAppointmentSelect}
+                onEditAppointment={handleEditAppointment}
+                onDeleteAppointment={handleDeleteAppointment}
               />
             ) : (
               <AppointmentList
                 appointments={appointments}
                 onAppointmentSelect={handleAppointmentSelect}
+                onEditAppointment={handleEditAppointment}
+                onDeleteAppointment={handleDeleteAppointment}
               />
             )}
           </div>
@@ -195,7 +213,7 @@ export default function AppointmentsPage() {
                     .map((appointment) => (
                       <div
                         key={appointment.id}
-                        className="p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-blue-50 transition-colors duration-200"
+                        className="p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-blue-50 transition-colors duration-200 group"
                         onClick={() => handleAppointmentSelect(appointment)}
                       >
                         <div className="flex items-center justify-between">
@@ -203,19 +221,50 @@ export default function AppointmentsPage() {
                             <p className="font-medium text-gray-900">{appointment.patientName}</p>
                             <p className="text-sm text-gray-600">{appointment.treatment}</p>
                           </div>
-                          <div className="text-right">
-                            <p className="font-semibold text-blue-600">{appointment.time}</p>
-                            <span className={`inline-block px-2 py-1 text-xs rounded-full ${
-                              appointment.status === 'confirmed' ? 'bg-green-100 text-green-800' :
-                              appointment.status === 'scheduled' ? 'bg-yellow-100 text-yellow-800' :
-                              appointment.status === 'completed' ? 'bg-blue-100 text-blue-800' :
-                              'bg-red-100 text-red-800'
-                            }`}>
-                              {appointment.status === 'confirmed' ? 'Onaylandı' :
-                               appointment.status === 'scheduled' ? 'Bekliyor' :
-                               appointment.status === 'completed' ? 'Tamamlandı' :
-                               'İptal Edildi'}
-                            </span>
+                          <div className="flex items-center space-x-3">
+                            <div className="text-right">
+                              <p className="font-semibold text-blue-600">{appointment.time}</p>
+                              <span className={`inline-block px-2 py-1 text-xs rounded-full ${
+                                appointment.status === 'confirmed' ? 'bg-green-100 text-green-800' :
+                                appointment.status === 'scheduled' ? 'bg-yellow-100 text-yellow-800' :
+                                appointment.status === 'completed' ? 'bg-blue-100 text-blue-800' :
+                                'bg-red-100 text-red-800'
+                              }`}>
+                                {appointment.status === 'confirmed' ? 'Onaylandı' :
+                                 appointment.status === 'scheduled' ? 'Bekliyor' :
+                                 appointment.status === 'completed' ? 'Tamamlandı' :
+                                 'İptal Edildi'}
+                              </span>
+                            </div>
+                            
+                            {/* Aksiyon Butonları */}
+                            <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleEditAppointment(appointment)
+                                }}
+                                className="p-1.5 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors duration-200"
+                                title="Düzenle"
+                              >
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                              </button>
+                              
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleDeleteAppointment(appointment)
+                                }}
+                                className="p-1.5 text-red-600 hover:bg-red-100 rounded-lg transition-colors duration-200"
+                                title="Sil"
+                              >
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              </button>
+                            </div>
                           </div>
                         </div>
                       </div>

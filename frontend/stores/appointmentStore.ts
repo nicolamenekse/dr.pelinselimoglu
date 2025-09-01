@@ -25,6 +25,7 @@ interface AppointmentActions {
   addAppointment: (appointment: Omit<Appointment, 'id' | 'createdAt' | 'updatedAt'>) => void
   updateAppointment: (id: string, updates: Partial<Appointment>) => void
   deleteAppointment: (id: string) => void
+  deleteAppointmentsByPatientId: (patientId: string) => void
   getAppointmentsByDate: (date: string) => Appointment[]
   getAppointmentsByPatient: (patientId: string) => Appointment[]
   getUpcomingAppointments: () => Appointment[]
@@ -66,6 +67,14 @@ export const useAppointmentStore = create<AppointmentStore>()(
       deleteAppointment: (id) => {
         set((state) => ({
           appointments: state.appointments.filter((appointment) => appointment.id !== id),
+        }))
+      },
+
+      deleteAppointmentsByPatientId: (patientId) => {
+        set((state) => ({
+          appointments: state.appointments.filter(
+            (appointment) => appointment.patientId !== patientId
+          ),
         }))
       },
 
