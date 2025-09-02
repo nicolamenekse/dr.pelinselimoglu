@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/stores/authStore'
 import { usePatientStore } from '@/stores/patientStore'
@@ -18,6 +18,11 @@ export default function ReportsPage() {
     checkAuth()
   }, [checkAuth])
 
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
   useEffect(() => {
     // Sadece checkAuth tamamlandıktan sonra yönlendirme yap
     if (!isLoading && !isAuthenticated) {
@@ -25,7 +30,7 @@ export default function ReportsPage() {
     }
   }, [isAuthenticated, isLoading, router])
 
-  if (isLoading || !user) {
+  if (!mounted || isLoading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/stores/authStore'
 import { usePatientStore } from '@/stores/patientStore'
@@ -10,6 +10,7 @@ import Link from 'next/link'
 
 export default function DashboardPage() {
   const router = useRouter()
+  const [mounted, setMounted] = useState(false)
   const { user, isAuthenticated, checkAuth, isLoading } = useAuthStore()
   const { patients } = usePatientStore()
   const { appointments, getUpcomingAppointments } = useAppointmentStore()
@@ -19,12 +20,16 @@ export default function DashboardPage() {
   }, [checkAuth])
 
   useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       router.push('/login')
     }
   }, [isAuthenticated, isLoading, router])
 
-  if (isLoading || !user) {
+  if (!mounted || isLoading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-900 via-blue-900 to-cyan-800">
         <div className="flex items-center justify-center p-8">

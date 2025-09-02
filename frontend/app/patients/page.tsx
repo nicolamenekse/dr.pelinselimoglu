@@ -21,10 +21,15 @@ export default function PatientsPage() {
   const [sortBy, setSortBy] = useState<'name' | 'createdAt' | 'updatedAt'>('createdAt')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table')
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
     checkAuth()
   }, [checkAuth])
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
     // Sadece checkAuth tamamlandıktan sonra yönlendirme yap
@@ -274,7 +279,7 @@ export default function PatientsPage() {
     }
   }
 
-  if (!user) {
+  if (!mounted || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800">
         <div className="flex items-center justify-center p-8">

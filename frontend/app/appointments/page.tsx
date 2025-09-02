@@ -20,10 +20,15 @@ export default function AppointmentsPage() {
   const [showForm, setShowForm] = useState(false)
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null)
   const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar')
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
     checkAuth()
   }, [checkAuth])
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
     // Sadece checkAuth tamamlandıktan sonra yönlendirme yap
@@ -32,7 +37,7 @@ export default function AppointmentsPage() {
     }
   }, [user, authLoading, router])
 
-  if (authLoading || !user) {
+  if (!mounted || authLoading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
