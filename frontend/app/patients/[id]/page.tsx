@@ -136,7 +136,7 @@ export default function PatientDetailPage() {
                   {patient.birthDate && (
                     <div className="flex items-center">
                       <span className="mr-2">🎂</span>
-                      <span>{formatDate(patient.birthDate)}</span>
+                      <span>{new Date(patient.birthDate).toLocaleDateString('tr-TR')}</span>
                       {getAge(patient.birthDate) && (
                         <span className="ml-2 text-blue-300 font-semibold">
                           ({getAge(patient.birthDate)} yaşında)
@@ -171,7 +171,7 @@ export default function PatientDetailPage() {
           </div>
 
           {/* Quick Info Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
             <div className="bg-blue-500/15 rounded-xl p-4 border border-blue-400/30">
               <div className="flex items-center">
                 <span className="text-2xl mr-3">📞</span>
@@ -193,28 +193,6 @@ export default function PatientDetailPage() {
                 </div>
               </div>
             )}
-            
-            <div className="bg-purple-500/15 rounded-xl p-4 border border-purple-400/30">
-              <div className="flex items-center">
-                <span className="text-2xl mr-3">💊</span>
-                <div>
-                  <p className="text-sm text-purple-300 font-medium">Tedavi Sayısı</p>
-                  <p className="text-lg font-semibold text-white">{patient.selectedTreatments.length}</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-amber-500/15 rounded-xl p-4 border border-amber-400/30">
-              <div className="flex items-center">
-                <span className="text-2xl mr-3">📸</span>
-                <div>
-                  <p className="text-sm text-amber-300 font-medium">Fotoğraf</p>
-                  <p className="text-lg font-semibold text-white">
-                    {patient.beforePhotos.length + patient.afterPhotos.length}
-                  </p>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
 
@@ -327,7 +305,7 @@ export default function PatientDetailPage() {
 
                 return (
                   <>
-                    {/* Aynı gün yapılan tedaviler artık ayrıca gösterilmiyor */}
+                    {/* Aynı gün yapılan tedaviler ayrıca gösterilmiyor */}
                     {completedPast.length > 0 && (
                       <div className="mb-2">
                         <h3 className="text-lg font-semibold text-white mb-3">Gerçekleştirilen İşlemler</h3>
@@ -502,73 +480,64 @@ export default function PatientDetailPage() {
 
           {/* Right Column - Medical Info & Actions */}
           <div className="space-y-8">
-            {/* Medical Information */}
-            <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-                <span className="mr-3">🏥</span>
-                Tıbbi Bilgiler
-              </h2>
-              
-              <div className="space-y-6">
-                {/* Allergies */}
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
-                    <span className="mr-2">⚠️</span>
-                    Alerjiler
-                  </h3>
-                  <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 min-h-[80px]">
-                    {patient.allergies ? (
-                      <p className="text-gray-700 leading-relaxed">{patient.allergies}</p>
-                    ) : (
-                      <p className="text-gray-500 italic">Bilinen alerji bulunmuyor</p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Medications */}
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
-                    <span className="mr-2">💊</span>
-                    Kullandığı İlaçlar
-                  </h3>
-                  <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 min-h-[80px]">
-                    {patient.medications ? (
-                      <p className="text-gray-700 leading-relaxed">{patient.medications}</p>
-                    ) : (
-                      <p className="text-gray-500 italic">Düzenli ilaç kullanımı bulunmuyor</p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Medical History */}
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
-                    <span className="mr-2">🏥</span>
-                    Tıbbi Geçmiş
-                  </h3>
-                  <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 min-h-[80px]">
-                    {patient.medicalHistory ? (
-                      <p className="text-gray-700 leading-relaxed">{patient.medicalHistory}</p>
-                    ) : (
-                      <p className="text-gray-500 italic">Önemli tıbbi geçmiş bulunmuyor</p>
-                    )}
-                  </div>
-                </div>
-
-                {/* General Notes */}
-                {patient.notes && (
+            {/* Medical Information - only render if has any info */}
+            {Boolean(patient.allergies || patient.medications || patient.medicalHistory || patient.notes) && (
+              <div className="bg-gradient-to-br from-slate-800/50 to-slate-700/50 rounded-2xl shadow-xl p-6 border border-slate-600/50">
+                <h2 className="text-2xl font-bold text-white mb-6 flex items-center">
+                  <span className="mr-3">🏥</span>
+                  Tıbbi Bilgiler
+                </h2>
+                <div className="space-y-6">
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
-                      <span className="mr-2">📝</span>
-                      Genel Notlar
+                    <h3 className="text-lg font-semibold text-white mb-3 flex items-center">
+                      <span className="mr-2">⚠️</span>
+                      Alerjiler
                     </h3>
-                    <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                      <p className="text-gray-700 leading-relaxed">{patient.notes}</p>
-                    </div>
+                    {patient.allergies ? (
+                      <div className="bg-slate-700/40 p-4 rounded-lg border border-slate-600/50">
+                        <p className="text-slate-200 leading-relaxed">{patient.allergies}</p>
+                      </div>
+                    ) : null}
                   </div>
-                )}
+
+                  <div>
+                    <h3 className="text-lg font-semibold text-white mb-3 flex items-center">
+                      <span className="mr-2">💊</span>
+                      Kullandığı İlaçlar
+                    </h3>
+                    {patient.medications ? (
+                      <div className="bg-slate-700/40 p-4 rounded-lg border border-slate-600/50">
+                        <p className="text-slate-200 leading-relaxed">{patient.medications}</p>
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold text-white mb-3 flex items-center">
+                      <span className="mr-2">🏥</span>
+                      Tıbbi Geçmiş
+                    </h3>
+                    {patient.medicalHistory ? (
+                      <div className="bg-slate-700/40 p-4 rounded-lg border border-slate-600/50">
+                        <p className="text-slate-200 leading-relaxed">{patient.medicalHistory}</p>
+                      </div>
+                    ) : null}
+                  </div>
+
+                  {patient.notes && (
+                    <div>
+                      <h3 className="text-lg font-semibold text-white mb-3 flex items-center">
+                        <span className="mr-2">📝</span>
+                        Genel Notlar
+                      </h3>
+                      <div className="bg-slate-700/40 p-4 rounded-lg border border-slate-600/50">
+                        <p className="text-slate-200 leading-relaxed">{patient.notes}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Quick Actions */}
             <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl shadow-lg p-6 border border-blue-200">
@@ -599,24 +568,7 @@ export default function PatientDetailPage() {
               </div>
             </div>
 
-            {/* System Info */}
-            <div className="bg-gray-50 rounded-2xl p-6 border border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">📊 Sistem Bilgileri</h3>
-              <div className="space-y-3 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Kayıt Tarihi:</span>
-                  <span className="font-medium">{new Date(patient.createdAt).toLocaleDateString('tr-TR')}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Son Güncelleme:</span>
-                  <span className="font-medium">{new Date(patient.updatedAt).toLocaleDateString('tr-TR')}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Hasta ID:</span>
-                  <span className="font-mono text-xs bg-gray-200 px-2 py-1 rounded">{patient.id.slice(0, 8)}...</span>
-                </div>
-              </div>
-            </div>
+            {/* System Info removed per request */}
           </div>
         </div>
 
