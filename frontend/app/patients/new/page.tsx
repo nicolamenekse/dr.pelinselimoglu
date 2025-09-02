@@ -272,11 +272,11 @@ export default function NewPatientPage() {
           time: appointment.time,
           duration: appointment.duration,
           notes: appointment.notes,
-          status: 'confirmed'
+          status: 'scheduled'
         })
       }
 
-      // Create completed appointments for same-day treatments
+      // Create appointments for same-day treatments as scheduled by default
       for (const treatment of formData.sameDayTreatments) {
         addAppointment({
           patientId: crypto.randomUUID(), // Generate temporary ID
@@ -285,8 +285,8 @@ export default function NewPatientPage() {
           date: new Date().toISOString().split('T')[0],
           time: new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
           duration: 60,
-          notes: 'Aynı gün yapılan tedavi',
-          status: 'completed'
+          notes: 'Aynı gün planlandı',
+          status: 'scheduled'
         })
       }
 

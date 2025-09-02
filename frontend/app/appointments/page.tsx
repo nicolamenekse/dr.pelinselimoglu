@@ -39,14 +39,16 @@ export default function AppointmentsPage() {
 
   if (!mounted || authLoading || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+        <div className="animate-spin rounded-full h-12 w-12 border-2 border-blue-500 border-t-transparent"></div>
       </div>
     )
   }
 
   const upcomingAppointments = getUpcomingAppointments()
+  const todayIso = new Date().toISOString().split('T')[0]
   const todayAppointments = appointments.filter(apt => apt.date === selectedDate)
+  const visibleAppointments = appointments.filter(apt => apt.date !== todayIso)
 
   const handleDateSelect = (date: string) => {
     setSelectedDate(date)
@@ -84,32 +86,31 @@ export default function AppointmentsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
       <Header />
       
-      <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+      <main className="w-full max-w-none py-6 px-4 sm:px-6 lg:px-8">
         {/* Page Header */}
         <div className="mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h1 className="text-4xl font-bold text-gray-900 mb-2">Randevu Takvimi</h1>
-              <p className="text-lg text-gray-600">
-                Toplam <span className="font-semibold text-blue-600">{appointments.length}</span> randevu
-                • Bugün <span className="font-semibold text-green-600">{todayAppointments.length}</span> randevu
+              <h1 className="text-3xl font-bold text-white font-serif mb-2">📅 Randevu Takvimi</h1>
+              <p className="text-slate-300">
+                Toplam <span className="font-semibold text-blue-300">{appointments.length}</span> randevu • Bugün <span className="font-semibold text-emerald-300">{todayAppointments.length}</span> randevu
               </p>
             </div>
             <div className="mt-4 sm:mt-0 flex space-x-3">
               <button
                 onClick={() => setViewMode(viewMode === 'calendar' ? 'list' : 'calendar')}
-                className="btn-secondary"
+                className="px-5 py-3 rounded-xl text-sm font-medium bg-slate-700/60 text-slate-200 border border-slate-600/50 hover:bg-slate-600/60 transition-all"
               >
                 {viewMode === 'calendar' ? '📋 Liste Görünümü' : '📅 Takvim Görünümü'}
               </button>
               <button
                 onClick={handleNewAppointment}
-                className="btn-primary inline-flex items-center text-lg px-6 py-3 shadow-lg hover:shadow-xl transition-all duration-200"
+                className="inline-flex items-center px-6 py-3 rounded-xl text-sm font-semibold bg-gradient-to-r from-blue-500 to-purple-600 text-white border border-slate-600/50 shadow-lg hover:shadow-xl hover:from-blue-600 hover:to-purple-700 transition-all"
               >
-                <svg className="w-6 h-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                 </svg>
                 Yeni Randevu
@@ -187,7 +188,7 @@ export default function AppointmentsPage() {
           <div className="xl:col-span-2">
             {viewMode === 'calendar' ? (
               <AppointmentCalendar
-                appointments={appointments}
+                appointments={visibleAppointments}
                 selectedDate={selectedDate}
                 onDateSelect={handleDateSelect}
                 onAppointmentSelect={handleAppointmentSelect}
@@ -196,7 +197,7 @@ export default function AppointmentsPage() {
               />
             ) : (
               <AppointmentList
-                appointments={appointments}
+                appointments={visibleAppointments}
                 onAppointmentSelect={handleAppointmentSelect}
                 onEditAppointment={handleEditAppointment}
                 onDeleteAppointment={handleDeleteAppointment}
@@ -206,70 +207,30 @@ export default function AppointmentsPage() {
 
           {/* Sidebar */}
           <div className="space-y-6">
-            {/* Today's Appointments */}
-            <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Bugünkü Randevular</h3>
-              {todayAppointments.length === 0 ? (
-                <p className="text-gray-500 text-center py-4">Bugün randevu bulunmuyor</p>
+            {/* Upcoming Appointments (exclude today) */}
+            <div className="bg-gradient-to-br from-slate-800/50 to-slate-700/50 rounded-2xl shadow-xl p-6 border border-slate-600/50">
+              <h3 className="text-lg font-semibold text-white mb-4">Yaklaşan Randevular</h3>
+              {visibleAppointments.filter(a => a.date > todayIso).length === 0 ? (
+                <p className="text-slate-400 text-center py-4">Yaklaşan randevu bulunmuyor</p>
               ) : (
                 <div className="space-y-3">
-                  {todayAppointments
-                    .sort((a, b) => a.time.localeCompare(b.time))
+                  {visibleAppointments
+                    .filter(a => a.date > todayIso)
+                    .sort((a, b) => (a.date + 'T' + a.time).localeCompare(b.date + 'T' + b.time))
+                    .slice(0, 8)
                     .map((appointment) => (
                       <div
                         key={appointment.id}
-                        className="p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-blue-50 transition-colors duration-200 group"
+                        className="p-3 bg-slate-700/40 rounded-lg cursor-pointer hover:bg-slate-600/50 transition-colors duration-200 group border border-slate-600/50"
                         onClick={() => handleAppointmentSelect(appointment)}
                       >
                         <div className="flex items-center justify-between">
                           <div>
-                            <p className="font-medium text-gray-900">{appointment.patientName}</p>
-                            <p className="text-sm text-gray-600">{appointment.treatment}</p>
+                            <p className="font-medium text-white">{appointment.patientName}</p>
+                            <p className="text-sm text-slate-300">{appointment.treatment}</p>
                           </div>
-                          <div className="flex items-center space-x-3">
-                            <div className="text-right">
-                              <p className="font-semibold text-blue-600">{appointment.time}</p>
-                              <span className={`inline-block px-2 py-1 text-xs rounded-full ${
-                                appointment.status === 'confirmed' ? 'bg-green-100 text-green-800' :
-                                appointment.status === 'scheduled' ? 'bg-yellow-100 text-yellow-800' :
-                                appointment.status === 'completed' ? 'bg-blue-100 text-blue-800' :
-                                'bg-red-100 text-red-800'
-                              }`}>
-                                {appointment.status === 'confirmed' ? 'Onaylandı' :
-                                 appointment.status === 'scheduled' ? 'Bekliyor' :
-                                 appointment.status === 'completed' ? 'Tamamlandı' :
-                                 'İptal Edildi'}
-                              </span>
-                            </div>
-                            
-                            {/* Aksiyon Butonları */}
-                            <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  handleEditAppointment(appointment)
-                                }}
-                                className="p-1.5 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors duration-200"
-                                title="Düzenle"
-                              >
-                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                </svg>
-                              </button>
-                              
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  handleDeleteAppointment(appointment)
-                                }}
-                                className="p-1.5 text-red-600 hover:bg-red-100 rounded-lg transition-colors duration-200"
-                                title="Sil"
-                              >
-                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                              </button>
-                            </div>
+                          <div className="text-right">
+                            <p className="font-semibold text-blue-300">{appointment.date} {appointment.time}</p>
                           </div>
                         </div>
                       </div>

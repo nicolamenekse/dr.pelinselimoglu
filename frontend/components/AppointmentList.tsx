@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { Appointment } from '@/stores/appointmentStore'
+import { Appointment, useAppointmentStore } from '@/stores/appointmentStore'
 
 interface AppointmentListProps {
   appointments: Appointment[]
@@ -69,7 +69,7 @@ export default function AppointmentList({
   const getStatusBadge = (status: Appointment['status']) => {
     const statusConfig = {
       scheduled: { text: 'Planlandı', bg: 'bg-yellow-100', textColor: 'text-yellow-800', border: 'border-yellow-300' },
-      confirmed: { text: 'Onaylandı', bg: 'bg-green-100', textColor: 'text-green-800', border: 'border-green-300' },
+      confirmed: { text: 'Planlandı', bg: 'bg-yellow-100', textColor: 'text-yellow-800', border: 'border-yellow-300' },
       completed: { text: 'Tamamlandı', bg: 'bg-blue-100', textColor: 'text-blue-800', border: 'border-blue-300' },
       cancelled: { text: 'İptal Edildi', bg: 'bg-red-100', textColor: 'text-red-800', border: 'border-red-300' },
     }
@@ -151,17 +151,17 @@ export default function AppointmentList({
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg border border-gray-100">
+    <div className="bg-gradient-to-br from-slate-800/50 to-slate-700/50 rounded-2xl shadow-xl border border-slate-600/50">
       {/* Filtreler ve Sıralama */}
-      <div className="p-6 border-b border-gray-200">
+      <div className="p-6 border-b border-slate-600/50">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           {/* Durum Filtresi */}
           <div className="flex items-center space-x-2">
-            <label className="text-sm font-medium text-gray-700">Durum:</label>
+            <label className="text-sm font-medium text-slate-300">Durum:</label>
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value as any)}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="px-3 py-2 border border-slate-600/50 bg-slate-700/50 text-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/50 focus:border-blue-400/50"
             >
               <option value="all">Tümü</option>
               <option value="scheduled">Planlandı</option>
@@ -173,11 +173,11 @@ export default function AppointmentList({
 
           {/* Sıralama */}
           <div className="flex items-center space-x-2">
-            <label className="text-sm font-medium text-gray-700">Sırala:</label>
+            <label className="text-sm font-medium text-slate-300">Sırala:</label>
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as any)}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="px-3 py-2 border border-slate-600/50 bg-slate-700/50 text-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/50 focus:border-blue-400/50"
             >
               <option value="date">Tarih</option>
               <option value="time">Saat</option>
@@ -186,7 +186,7 @@ export default function AppointmentList({
             </select>
             <button
               onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-              className="p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200"
+              className="p-2 rounded-lg hover:bg-slate-600/50 transition-colors duration-200 text-slate-200 border border-slate-600/50"
             >
               {sortOrder === 'asc' ? (
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -206,29 +206,29 @@ export default function AppointmentList({
       <div className="overflow-hidden">
         {filteredAndSortedAppointments.length === 0 ? (
           <div className="p-12 text-center">
-            <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">
-              <svg className="w-12 h-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="mx-auto w-24 h-24 bg-slate-700/40 rounded-full flex items-center justify-center mb-6 border border-slate-600/50">
+              <svg className="w-12 h-12 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">Randevu bulunamadı</h3>
-            <p className="text-gray-500">
+            <h3 className="text-xl font-semibold text-white mb-2">Randevu bulunamadı</h3>
+            <p className="text-slate-400">
               {filterStatus !== 'all' ? 'Seçilen durumda randevu bulunmuyor' : 'Henüz randevu oluşturulmamış'}
             </p>
           </div>
         ) : (
-          <div className="divide-y divide-gray-200">
+          <div className="divide-y divide-slate-600/50">
             {filteredAndSortedAppointments.map((appointment) => (
               <div
                 key={appointment.id}
-                className="p-6 hover:bg-gray-50 transition-colors duration-200 cursor-pointer group"
+                className="p-6 hover:bg-slate-700/40 transition-colors duration-200 cursor-pointer group"
                 onClick={() => onAppointmentSelect(appointment)}
               >
                 <div className="flex items-start justify-between">
                   {/* Sol Taraf - Tarih ve Saat */}
                   <div className="flex items-start space-x-4">
                     <div className="text-center">
-                      <div className="w-16 h-16 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-lg flex flex-col items-center justify-center text-white">
+                      <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex flex-col items-center justify-center text-white">
                         <div className="text-xs font-medium">
                           {new Date(appointment.date).toLocaleDateString('tr-TR', { month: 'short' })}
                         </div>
@@ -236,10 +236,10 @@ export default function AppointmentList({
                           {new Date(appointment.date).getDate()}
                         </div>
                       </div>
-                      <div className="mt-2 text-sm font-medium text-gray-900">
+                      <div className="mt-2 text-sm font-medium text-white">
                         {formatTime(appointment.time)}
                       </div>
-                      <div className="text-xs text-gray-500">
+                      <div className="text-xs text-slate-400">
                         {formatDuration(appointment.duration)}
                       </div>
                     </div>
@@ -247,13 +247,13 @@ export default function AppointmentList({
                     {/* Hasta ve Tedavi Bilgileri */}
                     <div className="flex-1">
                       <div className="flex items-center space-x-2 mb-2">
-                        <h3 className="text-lg font-semibold text-gray-900">
+                        <h3 className="text-lg font-semibold text-white">
                           {appointment.patientName}
                         </h3>
                         {getStatusBadge(appointment.status)}
                       </div>
                       
-                      <div className="space-y-1 text-sm text-gray-600">
+                      <div className="space-y-1 text-sm text-slate-300">
                         <div className="flex items-center space-x-2">
                           <span className="text-gray-400">💊</span>
                           <span>{appointment.treatment}</span>
@@ -261,7 +261,7 @@ export default function AppointmentList({
                         
                         {appointment.notes && (
                           <div className="flex items-start space-x-2">
-                            <span className="text-gray-400 mt-0.5">📝</span>
+                            <span className="text-slate-400 mt-0.5">📝</span>
                             <span className="line-clamp-2">{appointment.notes}</span>
                           </div>
                         )}
@@ -272,37 +272,46 @@ export default function AppointmentList({
                   {/* Sağ Taraf - Durum, İkon ve Aksiyonlar */}
                   <div className="flex items-center space-x-3">
                     <div className="text-right">
-                      <div className="text-sm text-gray-500">
+                      <div className="text-sm text-slate-400">
                         {formatDate(appointment.date)}
                       </div>
-                      <div className="text-xs text-gray-400">
+                      <div className="text-xs text-slate-500">
                         {new Date(appointment.createdAt).toLocaleDateString('tr-TR')}
                       </div>
                     </div>
                     
-                    <div className="flex items-center justify-center w-10 h-10 bg-gray-100 rounded-full">
+                    <div className="flex items-center justify-center w-10 h-10 bg-slate-700/40 border border-slate-600/50 rounded-full">
                       {getStatusIcon(appointment.status)}
                     </div>
 
-                    {/* Aksiyon Butonları */}
+                    {/* Aksiyon Butonları (sadeleştirildi) */}
                     <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                       <button
-                        onClick={(e) => handleEditClick(e, appointment)}
-                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors duration-200"
-                        title="Düzenle"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          useAppointmentStore.getState().markAppointmentCompleted(appointment.id)
+                        }}
+                        className="p-2 text-emerald-300 hover:bg-slate-600/60 rounded-lg transition-colors duration-200"
+                        title="Tamamlandı"
                       >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
                       </button>
-                      
                       <button
-                        onClick={(e) => handleDeleteClick(e, appointment)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200"
-                        title="Sil"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          const newDate = prompt('Yeni tarih (YYYY-MM-DD):', appointment.date)
+                          if (!newDate) return
+                          const newTime = prompt('Yeni saat (HH:MM):', appointment.time)
+                          if (!newTime) return
+                          useAppointmentStore.getState().rescheduleAppointment(appointment.id, newDate, newTime)
+                        }}
+                        className="p-2 text-yellow-300 hover:bg-slate-600/60 rounded-lg transition-colors duration-200"
+                        title="Ertele"
                       >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                       </button>
                     </div>
@@ -316,8 +325,8 @@ export default function AppointmentList({
 
       {/* Özet Bilgi */}
       {filteredAndSortedAppointments.length > 0 && (
-        <div className="p-4 bg-gray-50 border-t border-gray-200">
-          <div className="flex items-center justify-between text-sm text-gray-600">
+        <div className="p-4 bg-slate-700/40 border-t border-slate-600/50">
+          <div className="flex items-center justify-between text-sm text-slate-300">
             <span>
               Toplam {filteredAndSortedAppointments.length} randevu gösteriliyor
             </span>

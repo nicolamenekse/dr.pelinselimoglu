@@ -102,12 +102,20 @@ export default function AppointmentForm({ appointment, patients, onClose }: Appo
     setIsLoading(true)
 
     try {
+      // Gelecek tarihe ayarlanan randevuların durumu varsayılan olarak 'scheduled' olsun
+      const targetDate = new Date(formData.date + 'T' + formData.time)
+      const now = new Date()
+      let normalizedPayload = { ...formData }
+      if (targetDate > now && formData.status === 'completed') {
+        normalizedPayload = { ...normalizedPayload, status: 'scheduled' }
+      }
+
       if (appointment) {
         // Mevcut randevuyu güncelle
-        updateAppointment(appointment.id, formData)
+        updateAppointment(appointment.id, normalizedPayload)
       } else {
         // Yeni randevu ekle
-        addAppointment(formData)
+        addAppointment(normalizedPayload)
       }
       
       onClose()
@@ -294,7 +302,6 @@ export default function AppointmentForm({ appointment, patients, onClose }: Appo
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="scheduled">Planlandı</option>
-              <option value="confirmed">Onaylandı</option>
               <option value="completed">Tamamlandı</option>
               <option value="cancelled">İptal Edildi</option>
             </select>
