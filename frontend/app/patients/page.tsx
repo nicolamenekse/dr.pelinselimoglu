@@ -22,6 +22,8 @@ export default function PatientsPage() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table')
   const [mounted, setMounted] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 10
 
   useEffect(() => {
     checkAuth()
@@ -116,6 +118,17 @@ export default function PatientsPage() {
         return aValue < bValue ? 1 : -1
       }
     })
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredPatients.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const paginatedPatients = filteredPatients.slice(startIndex, endIndex)
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchTerm, filterGender, filterTreatment, sortBy, sortOrder])
 
   const handleDeletePatient = (id: string, name: string) => {
     // Hasta randevularını kontrol et
@@ -301,7 +314,7 @@ export default function PatientsPage() {
               👥 Kayıtlı Hastalar
             </h1>
             <span className="text-slate-400 text-lg">
-              ({filteredPatients.length} hasta)
+              ({filteredPatients.length} hasta • Sayfa {currentPage}/{totalPages})
             </span>
           </div>
           <Link
@@ -479,7 +492,7 @@ export default function PatientsPage() {
                   </tr>
                 </thead>
                 <tbody className="bg-slate-800/30 divide-y divide-slate-600/50">
-                  {filteredPatients.map((patient) => {
+                  {paginatedPatients.map((patient) => {
                     const appointmentInfo = formatAppointmentInfo(patient.id)
                     return (
                       <tr key={patient.id} className="hover:bg-slate-750/50 transition-all duration-300 group cursor-pointer">
@@ -614,7 +627,7 @@ export default function PatientsPage() {
             /* Grid View */
             <div className="p-8">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-stretch">
-                {filteredPatients.map((patient) => {
+                {paginatedPatients.map((patient) => {
                   const appointmentInfo = formatAppointmentInfo(patient.id)
                   return (
                                          <Link
@@ -719,6 +732,49 @@ export default function PatientsPage() {
             </div>
           )}
         </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="mt-8 flex items-center justify-center space-x-4">
+            <button
+              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+              disabled={currentPage === 1}
+              className="px-4 py-2 bg-slate-700/60 text-slate-200 rounded-lg border border-slate-600/50 hover:bg-slate-600/60 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              Önceki
+            </button>
+            
+            <div className="flex items-center space-x-2">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
+                    currentPage === page
+                      ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg'
+                      : 'bg-slate-700/60 text-slate-200 border border-slate-600/50 hover:bg-slate-600/60'
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
+            </div>
+            
+            <button
+              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+              disabled={currentPage === totalPages}
+              className="px-4 py-2 bg-slate-700/60 text-slate-200 rounded-lg border border-slate-600/50 hover:bg-slate-600/60 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center"
+            >
+              Sonraki
+              <svg className="w-4 h-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+        )}
       </main>
     </div>
   )

@@ -21,6 +21,8 @@ export default function AppointmentsPage() {
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null)
   const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar')
   const [mounted, setMounted] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 10
 
   useEffect(() => {
     checkAuth()
@@ -37,6 +39,13 @@ export default function AppointmentsPage() {
     }
   }, [user, authLoading, router])
 
+  // Reset to first page when view mode changes
+  useEffect(() => {
+    if (viewMode === 'list') {
+      setCurrentPage(1)
+    }
+  }, [viewMode])
+
   if (!mounted || authLoading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
@@ -49,6 +58,12 @@ export default function AppointmentsPage() {
   const todayIso = new Date().toISOString().split('T')[0]
   const todayAppointments = appointments.filter(apt => apt.date === selectedDate)
   const visibleAppointments = appointments.filter(apt => apt.date !== todayIso)
+
+  // Pagination logic for list view
+  const totalPages = Math.ceil(visibleAppointments.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const paginatedAppointments = visibleAppointments.slice(startIndex, endIndex)
 
   const handleDateSelect = (date: string) => {
     setSelectedDate(date)
@@ -97,6 +112,9 @@ export default function AppointmentsPage() {
               <h1 className="text-3xl font-bold text-white font-serif mb-2">📅 Randevu Takvimi</h1>
               <p className="text-slate-300">
                 Toplam <span className="font-semibold text-blue-300">{appointments.length}</span> randevu • Bugün <span className="font-semibold text-emerald-300">{todayAppointments.length}</span> randevu
+                {viewMode === 'list' && totalPages > 1 && (
+                  <span className="ml-2">• Sayfa {currentPage}/{totalPages}</span>
+                )}
               </p>
             </div>
             <div className="mt-4 sm:mt-0 flex space-x-3">
@@ -197,7 +215,7 @@ export default function AppointmentsPage() {
               />
             ) : (
               <AppointmentList
-                appointments={visibleAppointments}
+                appointments={paginatedAppointments}
                 onAppointmentSelect={handleAppointmentSelect}
                 onEditAppointment={handleEditAppointment}
                 onDeleteAppointment={handleDeleteAppointment}
@@ -262,6 +280,49 @@ export default function AppointmentsPage() {
             </div>
           </div>
         </div>
+
+        {/* Pagination for List View */}
+        {viewMode === 'list' && totalPages > 1 && (
+          <div className="mt-8 flex items-center justify-center space-x-4">
+            <button
+              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+              disabled={currentPage === 1}
+              className="px-4 py-2 bg-slate-700/60 text-slate-200 rounded-lg border border-slate-600/50 hover:bg-slate-600/60 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              Önceki
+            </button>
+            
+            <div className="flex items-center space-x-2">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
+                    currentPage === page
+                      ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg'
+                      : 'bg-slate-700/60 text-slate-200 border border-slate-600/50 hover:bg-slate-600/60'
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
+            </div>
+            
+            <button
+              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+              disabled={currentPage === totalPages}
+              className="px-4 py-2 bg-slate-700/60 text-slate-200 rounded-lg border border-slate-600/50 hover:bg-slate-600/60 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center"
+            >
+              Sonraki
+              <svg className="w-4 h-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+        )}
       </main>
 
       {/* Appointment Form Modal */}
