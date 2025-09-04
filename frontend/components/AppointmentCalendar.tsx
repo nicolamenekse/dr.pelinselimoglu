@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { Appointment } from '@/stores/appointmentStore'
+import { Appointment, useAppointmentStore } from '@/stores/appointmentStore'
 
 interface AppointmentCalendarProps {
   appointments: Appointment[]
@@ -108,13 +108,11 @@ export default function AppointmentCalendar({
     const dayAppointments = appointments.filter(apt => apt.date === date)
     if (dayAppointments.length === 0) return ''
     
-    const hasConfirmed = dayAppointments.some(apt => apt.status === 'confirmed')
     const hasScheduled = dayAppointments.some(apt => apt.status === 'scheduled')
     const hasCompleted = dayAppointments.some(apt => apt.status === 'completed')
     const hasCancelled = dayAppointments.some(apt => apt.status === 'cancelled')
     
     if (hasCompleted) return 'bg-green-100 border-green-300'
-    if (hasConfirmed) return 'bg-blue-100 border-blue-300'
     if (hasScheduled) return 'bg-yellow-100 border-yellow-300'
     if (hasCancelled) return 'bg-red-100 border-red-300'
     return 'bg-gray-100 border-gray-300'
@@ -128,10 +126,10 @@ export default function AppointmentCalendar({
   const dayNames = ['Pzr', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt']
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
+    <div className="bg-gradient-to-br from-slate-800/50 to-slate-700/50 rounded-2xl shadow-xl p-6 border border-slate-600/50">
       {/* Takvim Başlığı */}
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">
+        <h2 className="text-2xl font-bold text-white font-serif">
           {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
         </h2>
         <div className="flex space-x-2">
@@ -235,8 +233,8 @@ export default function AppointmentCalendar({
 
       {/* Seçili Gün Detayları */}
       {selectedDateAppointments.length > 0 && (
-        <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-          <h3 className="text-lg font-semibold text-blue-900 mb-3">
+        <div className="mt-6 p-4 bg-slate-700/40 rounded-lg border border-slate-600/50">
+          <h3 className="text-lg font-semibold text-white mb-3">
             {new Date(selectedDate).toLocaleDateString('tr-TR', {
               weekday: 'long',
               year: 'numeric',
@@ -250,27 +248,25 @@ export default function AppointmentCalendar({
               .map((appointment) => (
                 <div
                   key={appointment.id}
-                  className="flex items-center justify-between p-3 bg-white rounded-lg cursor-pointer hover:bg-blue-100 transition-colors duration-200 group"
+                  className="flex items-center justify-between p-3 bg-slate-700/30 border border-slate-600/50 rounded-lg cursor-pointer hover:bg-slate-600/40 transition-colors duration-200 group"
                   onClick={() => onAppointmentSelect(appointment)}
                 >
                   <div className="flex items-center space-x-3">
-                    <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                    <div className="w-3 h-3 rounded-full bg-blue-400"></div>
                     <div>
-                      <p className="font-medium text-gray-900">{appointment.time}</p>
-                      <p className="text-sm text-gray-600">{appointment.patientName}</p>
+                      <p className="font-medium text-white">{appointment.time}</p>
+                      <p className="text-sm text-slate-300">{appointment.patientName}</p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-3">
                     <div className="text-right">
-                      <p className="text-sm font-medium text-gray-900">{appointment.treatment}</p>
+                      <p className="text-sm font-medium text-white">{appointment.treatment}</p>
                       <span className={`inline-block px-2 py-1 text-xs rounded-full ${
-                        appointment.status === 'confirmed' ? 'bg-green-100 text-green-800' :
-                        appointment.status === 'scheduled' ? 'bg-yellow-100 text-yellow-800' :
-                        appointment.status === 'completed' ? 'bg-blue-100 text-blue-800' :
-                        'bg-red-100 text-red-800'
+                        appointment.status === 'scheduled' || appointment.status === 'confirmed' ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-400/30' :
+                        appointment.status === 'completed' ? 'bg-blue-500/20 text-blue-300 border border-blue-400/30' :
+                        'bg-red-500/20 text-red-300 border border-red-400/30'
                       }`}>
-                        {appointment.status === 'confirmed' ? 'Onaylandı' :
-                         appointment.status === 'scheduled' ? 'Bekliyor' :
+                        {appointment.status === 'scheduled' || appointment.status === 'confirmed' ? 'Planlandı' :
                          appointment.status === 'completed' ? 'Tamamlandı' :
                          'İptal Edildi'}
                       </span>
@@ -283,14 +279,65 @@ export default function AppointmentCalendar({
                           e.stopPropagation()
                           onEditAppointment(appointment)
                         }}
-                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors duration-200"
+                        className="p-1.5 text-blue-300 hover:bg-slate-600/60 rounded-lg transition-colors duration-200"
                         title="Düzenle"
                       >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                         </svg>
                       </button>
-                      
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          useAppointmentStore.getState().markAppointmentCompleted(appointment.id)
+                        }}
+                        className="p-1.5 text-emerald-300 hover:bg-slate-600/60 rounded-lg transition-colors duration-200"
+                        title="Tamamlandı"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          const newDate = prompt('Yeni tarih (YYYY-MM-DD):', appointment.date)
+                          if (!newDate) return
+                          const newTime = prompt('Yeni saat (HH:MM):', appointment.time)
+                          if (!newTime) return
+                          useAppointmentStore.getState().rescheduleAppointment(appointment.id, newDate, newTime)
+                        }}
+                        className="p-1.5 text-yellow-300 hover:bg-slate-600/60 rounded-lg transition-colors duration-200"
+                        title="Ertele"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          useAppointmentStore.getState().confirmAppointment(appointment.id)
+                        }}
+                        className="p-1.5 text-blue-300 hover:bg-slate-600/60 rounded-lg transition-colors duration-200"
+                        title="Onayla"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          useAppointmentStore.getState().cancelAppointment(appointment.id)
+                        }}
+                        className="p-1.5 text-red-300 hover:bg-slate-600/60 rounded-lg transition-colors duration-200"
+                        title="İptal Et"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
@@ -298,7 +345,7 @@ export default function AppointmentCalendar({
                             onDeleteAppointment(appointment)
                           }
                         }}
-                        className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200"
+                        className="p-1.5 text-red-300 hover:bg-slate-600/60 rounded-lg transition-colors duration-200"
                         title="Sil"
                       >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

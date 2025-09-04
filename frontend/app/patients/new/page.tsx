@@ -53,6 +53,7 @@ export default function NewPatientPage() {
   const { addPatient } = usePatientStore()
   const { addAppointment } = useAppointmentStore()
   const [isLoading, setIsLoading] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   
   const [formData, setFormData] = useState<PatientFormData>({
@@ -107,6 +108,10 @@ export default function NewPatientPage() {
   useEffect(() => {
     checkAuth()
   }, [checkAuth])
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -267,7 +272,7 @@ export default function NewPatientPage() {
           time: appointment.time,
           duration: appointment.duration,
           notes: appointment.notes,
-          status: 'confirmed'
+          status: 'scheduled'
         })
       }
 
@@ -294,7 +299,7 @@ export default function NewPatientPage() {
     }
   }
 
-  if (authLoading || !user) {
+  if (!mounted || authLoading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800">
         <div className="animate-spin rounded-full h-12 w-12 border-2 border-blue-500 border-t-transparent"></div>

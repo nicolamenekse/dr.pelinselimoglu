@@ -32,6 +32,10 @@ interface AppointmentActions {
   clearError: () => void
   syncAppointmentsWithPatients: (patients: any[]) => void
   updateAppointmentPatientId: (appointmentId: string, newPatientId: string) => void
+  markAppointmentCompleted: (id: string) => void
+  confirmAppointment: (id: string) => void
+  cancelAppointment: (id: string) => void
+  rescheduleAppointment: (id: string, date: string, time: string) => void
 }
 
 type AppointmentStore = AppointmentState & AppointmentActions
@@ -49,6 +53,22 @@ export const useAppointmentStore = create<AppointmentStore>()(
           id: crypto.randomUUID(),
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
+        }
+
+        // Varsayılan durum: eğer belirtilmemişse 'scheduled'
+        if (!newAppointment.status) {
+          (newAppointment as any).status = 'scheduled'
+        }
+
+        // Gelecek tarihteki randevular için varsayılan durumu 'scheduled' yap
+        try {
+          const now = new Date()
+          const aptDate = new Date(newAppointment.date + 'T' + newAppointment.time)
+          if (aptDate > now && newAppointment.status !== 'completed') {
+            newAppointment.status = 'scheduled'
+          }
+        } catch (e) {
+          // noop
         }
 
         set((state) => ({
@@ -189,6 +209,26 @@ export const useAppointmentStore = create<AppointmentStore>()(
               : appointment
           ),
         }))
+      },
+
+      markAppointmentCompleted: (id) => {
+        const { updateAppointment } = get()
+        updateAppointment(id, { status: 'completed' })
+      },
+
+      confirmAppointment: (id) => {
+        const { updateAppointment } = get()
+        updateAppointment(id, { status: 'confirmed' })
+      },
+
+      cancelAppointment: (id) => {
+        const { updateAppointment } = get()
+        updateAppointment(id, { status: 'cancelled' })
+      },
+
+      rescheduleAppointment: (id, date, time) => {
+        const { updateAppointment } = get()
+        updateAppointment(id, { date, time, status: 'scheduled' })
       },
     }),
     {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/stores/authStore'
 import { usePatientStore } from '@/stores/patientStore'
@@ -10,6 +10,7 @@ import Link from 'next/link'
 
 export default function DashboardPage() {
   const router = useRouter()
+  const [mounted, setMounted] = useState(false)
   const { user, isAuthenticated, checkAuth, isLoading } = useAuthStore()
   const { patients } = usePatientStore()
   const { appointments, getUpcomingAppointments } = useAppointmentStore()
@@ -19,16 +20,20 @@ export default function DashboardPage() {
   }, [checkAuth])
 
   useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       router.push('/login')
     }
   }, [isAuthenticated, isLoading, router])
 
-  if (isLoading || !user) {
+  if (!mounted || isLoading || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-900 via-blue-900 to-cyan-800">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
         <div className="flex items-center justify-center p-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-2 border-cyan-400 border-t-white"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-indigo-400 border-t-transparent"></div>
         </div>
       </div>
     )
@@ -47,25 +52,9 @@ export default function DashboardPage() {
   const upcomingAppts = getUpcomingAppointments().slice(0, 8)
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-blue-900 to-cyan-800">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
       <Header />
       
-      {/* User Welcome Card - Top Right */}
-      <div className="absolute top-24 right-8 z-10">
-        <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 shadow-xl">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-xl flex items-center justify-center shadow-lg">
-              <span className="text-white font-bold text-lg font-serif">
-                {user.name?.charAt(0).toUpperCase()}
-              </span>
-            </div>
-            <div className="text-white">
-              <p className="font-semibold text-sm">Hoş geldiniz, Dr. {user.name}</p>
-              <p className="text-xs text-cyan-200">Dashboard</p>
-            </div>
-          </div>
-        </div>
-      </div>
 
       <main className="pt-8 pb-10 px-4 lg:px-8">
         {/* 3-Column Layout */}
@@ -118,7 +107,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Center Column - Statistics & Quick Actions */}
+          {/* Center Column - Statistics */}
           <div className="lg:col-span-6">
             {/* Statistics Cards - 2x2 Grid */}
             <div className="mb-8">
@@ -204,63 +193,7 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Quick Actions - 2x2 Grid */}
-            <div>
-              <h2 className="text-2xl font-bold text-white font-serif mb-6 text-center">⚡ Hızlı İşlemler</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Yeni Hasta */}
-                <Link href="/patients/new" className="group">
-                  <div className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 backdrop-blur-md rounded-3xl border border-blue-400/30 p-6 hover:from-blue-500/30 hover:to-cyan-500/30 transition-all duration-500 hover:scale-105 hover:shadow-2xl cursor-pointer">
-                    <div className="text-center">
-                      <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300">
-                        <span className="text-3xl">➕</span>
-                      </div>
-                      <h3 className="text-white font-bold text-lg mb-2">Yeni Hasta</h3>
-                      <p className="text-cyan-200 text-sm">Hasta kaydı oluştur</p>
-                    </div>
-                  </div>
-                </Link>
-
-                {/* Randevu Oluştur */}
-                <Link href="/appointments" className="group">
-                  <div className="bg-gradient-to-br from-emerald-500/20 to-teal-500/20 backdrop-blur-md rounded-3xl border border-emerald-400/30 p-6 hover:from-emerald-500/30 hover:to-teal-500/30 transition-all duration-500 hover:scale-105 hover:shadow-2xl cursor-pointer">
-                    <div className="text-center">
-                      <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300">
-                        <span className="text-3xl">📅</span>
-                      </div>
-                      <h3 className="text-white font-bold text-lg mb-2">Randevu Oluştur</h3>
-                      <p className="text-emerald-200 text-sm">Yeni randevu ekle</p>
-                    </div>
-                  </div>
-                </Link>
-
-                {/* Hasta Listesi */}
-                <Link href="/patients" className="group">
-                  <div className="bg-gradient-to-br from-violet-500/20 to-purple-500/20 backdrop-blur-md rounded-3xl border border-violet-400/30 p-6 hover:from-violet-500/30 hover:to-purple-500/30 transition-all duration-500 hover:scale-105 hover:shadow-2xl cursor-pointer">
-                    <div className="text-center">
-                      <div className="w-16 h-16 bg-gradient-to-br from-violet-500 to-purple-500 rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300">
-                        <span className="text-3xl">👥</span>
-                      </div>
-                      <h3 className="text-white font-bold text-lg mb-2">Hasta Listesi</h3>
-                      <p className="text-violet-200 text-sm">Tüm hastaları görüntüle</p>
-                    </div>
-                  </div>
-                </Link>
-
-                {/* Raporlar */}
-                <Link href="/reports" className="group">
-                  <div className="bg-gradient-to-br from-amber-500/20 to-orange-500/20 backdrop-blur-md rounded-3xl border border-amber-400/30 p-6 hover:from-amber-500/30 hover:to-orange-500/30 transition-all duration-500 hover:scale-105 hover:shadow-2xl cursor-pointer">
-                    <div className="text-center">
-                      <div className="w-16 h-16 bg-gradient-to-br from-amber-500 to-orange-500 rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300">
-                        <span className="text-3xl">📊</span>
-                      </div>
-                      <h3 className="text-white font-bold text-lg mb-2">Raporlar</h3>
-                      <p className="text-amber-200 text-sm">İstatistikleri incele</p>
-                    </div>
-                  </div>
-                </Link>
-              </div>
-            </div>
+            {/* Hızlı İşlemler kaldırıldı */}
           </div>
 
           {/* Right Sidebar - Recent Patients */}
