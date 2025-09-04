@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware'
 
 export interface PatientPhoto {
   url: string
-  treatments: string[] // Changed to array to support multiple treatments
+  treatments: string[]
   type: 'before' | 'after'
   uploadedAt: string
 }
@@ -21,7 +21,7 @@ export interface Patient {
   treatmentNotes: string
   beforePhotos: string[]
   afterPhotos: string[]
-  photos: PatientPhoto[] // New structured photos array
+  photos: PatientPhoto[]
   allergies: string
   medications: string
   medicalHistory: string
@@ -41,6 +41,7 @@ interface PatientActions {
   updatePatient: (id: string, updates: Partial<Patient>) => void
   deletePatient: (id: string) => void
   getPatient: (id: string) => Patient | undefined
+  getAllPatients: () => Patient[]
   addPatientPhoto: (patientId: string, photo: Omit<PatientPhoto, 'uploadedAt'>) => void
   removePatientPhoto: (patientId: string, photoUrl: string) => void
   clearError: () => void
@@ -59,6 +60,7 @@ export const usePatientStore = create<PatientStore>()(
         const newPatient: Patient = {
           ...patientData,
           id: crypto.randomUUID(),
+          photos: patientData.photos || [],
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         }
@@ -72,7 +74,12 @@ export const usePatientStore = create<PatientStore>()(
         set((state) => ({
           patients: state.patients.map((patient) =>
             patient.id === id
-              ? { ...patient, ...updates, updatedAt: new Date().toISOString() }
+              ? { 
+                  ...patient, 
+                  ...updates, 
+                  photos: updates.photos || patient.photos || [],
+                  updatedAt: new Date().toISOString() 
+                }
               : patient
           ),
         }))
@@ -120,7 +127,38 @@ export const usePatientStore = create<PatientStore>()(
       },
 
       getPatient: (id) => {
-        return get().patients.find((patient) => patient.id === id)
+        const patient = get().patients.find((patient) => patient.id === id)
+        // Ensure all fields exist for backward compatibility
+        if (patient) {
+          return {
+            ...patient,
+            photos: patient.photos || [],
+            selectedTreatments: patient.selectedTreatments || [],
+            treatmentNotes: patient.treatmentNotes || '',
+            beforePhotos: patient.beforePhotos || [],
+            afterPhotos: patient.afterPhotos || [],
+            allergies: patient.allergies || '',
+            medications: patient.medications || '',
+            medicalHistory: patient.medicalHistory || '',
+            notes: patient.notes || ''
+          }
+        }
+        return patient
+      },
+
+      getAllPatients: () => {
+        return get().patients.map(patient => ({
+          ...patient,
+          photos: patient.photos || [],
+          selectedTreatments: patient.selectedTreatments || [],
+          treatmentNotes: patient.treatmentNotes || '',
+          beforePhotos: patient.beforePhotos || [],
+          afterPhotos: patient.afterPhotos || [],
+          allergies: patient.allergies || '',
+          medications: patient.medications || '',
+          medicalHistory: patient.medicalHistory || '',
+          notes: patient.notes || ''
+        }))
       },
 
       addPatientPhoto: (patientId, photoData) => {
@@ -161,6 +199,44 @@ export const usePatientStore = create<PatientStore>()(
     {
       name: 'patient-storage',
       partialize: (state) => ({ patients: state.patients }),
+      version: 1,
+      migrate: (persistedState: any, version: number) => {
+        if (version === 0) {
+          const state = persistedState as { patients: Patient[] }
+          return {
+            patients: state.patients.map(patient => ({
+              ...patient,
+              photos: patient.photos || [],
+              selectedTreatments: patient.selectedTreatments || [],
+              treatmentNotes: patient.treatmentNotes || '',
+              beforePhotos: patient.beforePhotos || [],
+              afterPhotos: patient.afterPhotos || [],
+              allergies: patient.allergies || '',
+              medications: patient.medications || '',
+              medicalHistory: patient.medicalHistory || '',
+              notes: patient.notes || ''
+            }))
+          }
+        }
+        return persistedState
+      },
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          const updatedPatients = state.patients.map(patient => ({
+            ...patient,
+            photos: patient.photos || [],
+            selectedTreatments: patient.selectedTreatments || [],
+            treatmentNotes: patient.treatmentNotes || '',
+            beforePhotos: patient.beforePhotos || [],
+            afterPhotos: patient.afterPhotos || [],
+            allergies: patient.allergies || '',
+            medications: patient.medications || '',
+            medicalHistory: patient.medicalHistory || '',
+            notes: patient.notes || ''
+          }))
+          state.patients = updatedPatients
+        }
+      }
     }
   )
 )

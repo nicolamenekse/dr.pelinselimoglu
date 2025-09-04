@@ -122,29 +122,19 @@ export default function NewPatientPage() {
   }, [user, authLoading, router])
 
   const handleInputChange = (field: keyof PatientFormData, value: any) => {
+    let formattedValue = value
+    
+    // Özel formatlama uygula
+    if (field === 'phone') {
+      formattedValue = formatPhoneNumber(value)
+    } else if (field === 'tcId') {
+      formattedValue = formatTcId(value)
+    }
+    
     setFormData(prev => ({
       ...prev,
-      [field]: value
+      [field]: formattedValue
     }))
-  }
-
-  const formatPhoneNumber = (value: string) => {
-    // Remove all non-digit characters
-    const digits = value.replace(/\D/g, '')
-    
-    // Format as 4-3-4 (e.g., 0555 123 4567)
-    if (digits.length <= 4) {
-      return digits
-    } else if (digits.length <= 7) {
-      return `${digits.slice(0, 4)} ${digits.slice(4)}`
-    } else {
-      return `${digits.slice(0, 4)} ${digits.slice(4, 7)} ${digits.slice(7, 11)}`
-    }
-  }
-
-  const handlePhoneChange = (value: string) => {
-    const formatted = formatPhoneNumber(value)
-    handleInputChange('phone', formatted)
   }
 
   const handleTreatmentToggle = (treatment: string) => {
@@ -207,6 +197,33 @@ export default function NewPatientPage() {
     }))
   }
 
+  // Telefon numarası formatlama fonksiyonu
+  const formatPhoneNumber = (value: string) => {
+    // Sadece rakamları al
+    const numbers = value.replace(/\D/g, '')
+    
+    // Maksimum 11 rakam (0xxx xxx xxxx)
+    if (numbers.length > 11) {
+      return formData.phone // Mevcut değeri koru
+    }
+    
+    // Format: 4-3-4 (0xxx xxx xxxx)
+    if (numbers.length <= 4) {
+      return numbers
+    } else if (numbers.length <= 7) {
+      return `${numbers.slice(0, 4)} ${numbers.slice(4)}`
+    } else {
+      return `${numbers.slice(0, 4)} ${numbers.slice(4, 7)} ${numbers.slice(7)}`
+    }
+  }
+
+  // TC kimlik numarası formatlama fonksiyonu
+  const formatTcId = (value: string) => {
+    // Sadece rakamları al ve maksimum 11 rakam
+    const numbers = value.replace(/\D/g, '').slice(0, 11)
+    return numbers
+  }
+
   const handlePhotoUpload = (type: 'before' | 'after', files: FileList) => {
     const fileArray = Array.from(files)
     if (type === 'before') {
@@ -250,14 +267,8 @@ export default function NewPatientPage() {
     
     try {
       // Form validation
-      if (!formData.name.trim() || !formData.tcId.trim() || !formData.phone.trim()) {
-        throw new Error('Ad, TC kimlik numarası ve telefon alanları zorunludur')
-      }
-
-      // TC ID validation (11 digits)
-      const tcIdDigits = formData.tcId.replace(/\D/g, '')
-      if (tcIdDigits.length !== 11) {
-        throw new Error('TC kimlik numarası 11 haneli olmalıdır')
+      if (!formData.name.trim() || !formData.phone.trim()) {
+        throw new Error('Ad ve telefon alanları zorunludur')
       }
 
       // Convert files to base64 strings
@@ -271,8 +282,7 @@ export default function NewPatientPage() {
       // Create patient data
       const patientData = {
         name: formData.name.trim(),
-        tcId: formData.tcId.replace(/\D/g, ''), // Store only digits
-        phone: formData.phone.replace(/\D/g, ''), // Store only digits
+        phone: formData.phone.trim(),
         email: formData.email.trim(),
         birthDate: formData.birthDate,
         gender: formData.gender,
@@ -281,7 +291,6 @@ export default function NewPatientPage() {
         treatmentNotes: formData.treatmentNotes.trim(),
         beforePhotos: beforePhotoUrls,
         afterPhotos: afterPhotoUrls,
-        photos: [], // Initialize empty photos array
         allergies: formData.allergies.trim(),
         medications: formData.medications.trim(),
         medicalHistory: formData.medicalHistory.trim(),
@@ -371,19 +380,14 @@ export default function NewPatientPage() {
                       required
                     />
                   </div>
-                  
-                  {/* TC ID */}
+
+                  {/* TC Kimlik Numarası */}
                   <div>
-                    <label className="block text-sm font-semibold text-slate-300 mb-2">TC Kimlik No *</label>
+                    <label className="block text-sm font-semibold text-slate-300 mb-2">TC Kimlik Numarası *</label>
                     <input
                       type="text"
                       value={formData.tcId}
-                      onChange={(e) => {
-                        const value = e.target.value.replace(/\D/g, '')
-                        if (value.length <= 11) {
-                          handleInputChange('tcId', value)
-                        }
-                      }}
+                      onChange={(e) => handleInputChange('tcId', e.target.value)}
                       className="w-full px-3 py-2.5 bg-slate-700/80 border border-slate-600/50 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-400/50 transition-all duration-300 text-sm"
                       placeholder="12345678901"
                       maxLength={11}
@@ -424,7 +428,7 @@ export default function NewPatientPage() {
                       <input
                         type="tel"
                         value={formData.phone}
-                        onChange={(e) => handlePhoneChange(e.target.value)}
+                        onChange={(e) => handleInputChange('phone', e.target.value)}
                         className="w-full px-3 py-2.5 bg-slate-700/80 border border-slate-600/50 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-400/50 transition-all duration-300 text-sm"
                         placeholder="0555 123 4567"
                         maxLength={13}
