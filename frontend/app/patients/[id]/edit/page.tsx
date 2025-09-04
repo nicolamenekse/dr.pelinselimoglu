@@ -15,6 +15,7 @@ export default function EditPatientPage() {
   const { addAppointment } = useAppointmentStore()
   
   const [isLoading, setIsLoading] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const [activeStep, setActiveStep] = useState(1)
   const [patient, setPatient] = useState<Patient | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -54,6 +55,10 @@ export default function EditPatientPage() {
   useEffect(() => {
     checkAuth()
   }, [checkAuth])
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
     // Sadece checkAuth tamamlandıktan sonra yönlendirme yap
@@ -202,9 +207,9 @@ export default function EditPatientPage() {
     }
   }
 
-  if (!user) {
+  if (!mounted || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-slate-900">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
       </div>
     )
@@ -222,16 +227,16 @@ export default function EditPatientPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
+    <div className="min-h-screen bg-slate-900">
       <Header />
       
-      <main className="max-w-4xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+      <main className="w-full max-w-none py-6 px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Hasta Bilgilerini Düzenle</h1>
-              <p className="mt-2 text-gray-600">
+              <h1 className="text-3xl font-bold text-slate-100">Hasta Bilgilerini Düzenle</h1>
+              <p className="mt-2 text-slate-400">
                 {patient.name} - Bilgileri güncelleyin
               </p>
             </div>
@@ -247,596 +252,260 @@ export default function EditPatientPage() {
           </div>
         </div>
 
-        {/* Progress Steps */}
-        <div className="mb-8">
-          <div className="flex items-center justify-center">
-            {[1, 2, 3, 4].map((step) => (
-              <div key={step} className="flex items-center">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium ${
-                  step <= activeStep
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 text-gray-600'
-                }`}>
-                  {step}
+        {/* Tek Sayfa 3 Sütun Düzen */}
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+          {/* Sol Sütun: Kişisel Bilgiler + Fotoğraflar */}
+          <div className="xl:col-span-3">
+            <div className="space-y-4">
+              <section className="bg-gradient-to-br from-slate-800/50 to-slate-700/50 backdrop-blur-md rounded-2xl shadow-xl border border-slate-600/50 p-6">
+                <div className="flex items-center space-x-3 mb-5">
+                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg">
+                    <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                  </div>
+                  <h2 className="text-xl font-bold text-white font-serif">👤 Kişisel Bilgiler</h2>
                 </div>
-                {step < 4 && (
-                  <div className={`w-16 h-1 mx-2 ${
-                    step < activeStep ? 'bg-blue-600' : 'bg-gray-200'
-                  }`} />
-                )}
-              </div>
-            ))}
-          </div>
-          <div className="flex justify-center mt-4 text-sm text-gray-600">
-            <span className={activeStep === 1 ? 'text-blue-600 font-medium' : ''}>Kişisel Bilgiler</span>
-            <span className="mx-2">•</span>
-            <span className={activeStep === 2 ? 'text-blue-600 font-medium' : ''}>Tedavi Bilgileri</span>
-            <span className="mx-2">•</span>
-            <span className={activeStep === 3 ? 'text-blue-600 font-medium' : ''}>Fotoğraflar</span>
-            <span className="mx-2">•</span>
-            <span className={activeStep === 4 ? 'text-blue-600 font-medium' : ''}>Önizleme</span>
-          </div>
-        </div>
-
-        <div className="space-y-8">
-          {/* Step 1: Personal Information */}
-          {activeStep === 1 && (
-            <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-                <span className="mr-3">👤</span>
-                Kişisel Bilgiler
-              </h2>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-300 mb-2">Ad Soyad *</label>
+                    <input
+                      type="text"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full px-3 py-2.5 bg-slate-700/80 border border-slate-600/50 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-400/50 transition-all duration-300 text-sm"
+                      placeholder="Hasta adı ve soyadı"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-300 mb-2">Doğum Tarihi</label>
+                      <input
+                        type="date"
+                        name="birthDate"
+                        value={formData.birthDate}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2.5 bg-slate-700/80 border border-slate-600/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-400/50 transition-all duration-300 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-300 mb-2">Cinsiyet</label>
+                      <select
+                        name="gender"
+                        value={formData.gender}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2.5 bg-slate-700/80 border border-slate-600/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-400/50 transition-all duration-300 text-sm"
+                      >
+                        <option value="female">Kadın</option>
+                        <option value="male">Erkek</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-300 mb-2">Telefon *</label>
+                      <input
+                        type="tel"
+                        name="phone"
+                        value={formData.phone}
+                        onChange={handleInputChange}
+                        required
+                        className="w-full px-3 py-2.5 bg-slate-700/80 border border-slate-600/50 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-400/50 transition-all duration-300 text-sm"
+                        placeholder="05XX XXX XX XX"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-300 mb-2">E-posta</label>
+                      <input
+                        type="email"
+                        name="email"
+                        value={formData.email}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2.5 bg-slate-700/80 border border-slate-600/50 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-400/50 transition-all duration-300 text-sm"
+                        placeholder="ornek@email.com"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-300 mb-2">Adres</label>
+                    <textarea
+                      name="address"
+                      value={formData.address}
+                      onChange={handleInputChange}
+                      rows={2}
+                      className="w-full px-3 py-2.5 bg-slate-700/80 border border-slate-600/50 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-400/50 transition-all duration-300 text-sm resize-none"
+                      placeholder="Hasta adresi"
+                    />
+                  </div>
+                </div>
+              </section>
+              <section className="bg-gradient-to-br from-slate-800/50 to-slate-700/50 backdrop-blur-md rounded-2xl shadow-xl border border-slate-600/50 p-6">
+                <div className="flex items-center space-x-3 mb-4">
+                  <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg">
+                    <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <h2 className="text-xl font-bold text-white font-serif">📸 Fotoğraflar</h2>
+                </div>
+                <div className="mb-4">
+                  <h3 className="text-sm font-semibold text-slate-300 mb-2">Tedavi Öncesi</h3>
+                  <input ref={fileInputRef} type="file" multiple accept="image/*" onChange={(e) => handlePhotoUpload(e, 'before')} className="hidden" />
+                  <button type="button" onClick={() => fileInputRef.current?.click()} className="w-full py-2 px-3 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-lg text-sm font-medium hover:from-blue-600 hover:to-indigo-600 transition-all duration-300 shadow-lg">📷 Fotoğraf Seç</button>
+                  {formData.beforePhotos.length > 0 && (
+                    <div className="grid grid-cols-2 gap-2 mt-2">
+                      {formData.beforePhotos.map((photo, index) => (
+                        <div key={index} className="relative group">
+                          <img src={photo} alt={`Before ${index + 1}`} className="w-full h-16 object-cover rounded-lg border-2 border-blue-300" />
+                          <button type="button" onClick={() => removePhoto(index, 'before')} className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-xs hover:bg-red-600">×</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Ad Soyad *
-                  </label>
-                  <input
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Hasta adı ve soyadı"
-                  />
+                  <h3 className="text-sm font-semibold text-slate-300 mb-2">Tedavi Sonrası</h3>
+                  <input type="file" multiple accept="image/*" onChange={(e) => handlePhotoUpload(e, 'after')} className="hidden" id="after-photos" />
+                  <label htmlFor="after-photos" className="w-full py-2 px-3 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-lg text-sm font-medium hover:from-emerald-600 hover:to-green-600 transition-all duration-300 shadow-lg cursor-pointer text-center block">📷 Fotoğraf Seç</label>
+                  {formData.afterPhotos.length > 0 && (
+                    <div className="grid grid-cols-2 gap-2 mt-2">
+                      {formData.afterPhotos.map((photo, index) => (
+                        <div key={index} className="relative group">
+                          <img src={photo} alt={`After ${index + 1}`} className="w-full h-16 object-cover rounded-lg border-2 border-emerald-300" />
+                          <button type="button" onClick={() => removePhoto(index, 'after')} className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-xs hover:bg-red-600">×</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Telefon *
-                  </label>
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleInputChange}
-                    required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="05XX XXX XX XX"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    E-posta
-                  </label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="hasta@email.com"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Doğum Tarihi
-                  </label>
-                  <input
-                    type="date"
-                    name="birthDate"
-                    value={formData.birthDate}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Cinsiyet
-                  </label>
-                  <select
-                    name="gender"
-                    value={formData.gender}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="female">Kadın</option>
-                    <option value="male">Erkek</option>
-                  </select>
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Adres
-                  </label>
-                  <textarea
-                    name="address"
-                    value={formData.address}
-                    onChange={handleInputChange}
-                    rows={3}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Hasta adresi"
-                  />
-                </div>
-              </div>
+              </section>
             </div>
-          )}
+          </div>
 
-          {/* Step 2: Treatment Information */}
-          {activeStep === 2 && (
-            <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-                <span className="mr-3">💊</span>
-                Tedavi Bilgileri
-              </h2>
-              
-              <div className="space-y-6">
-                {/* Treatment Categories */}
+          {/* Orta Sütun: Tedavi Seçimi */}
+          <div className="xl:col-span-6">
+            <section className="bg-gradient-to-br from-slate-800/50 to-slate-700/50 backdrop-blur-md rounded-2xl shadow-xl border border-slate-600/50 p-6 h-full">
+              <div className="flex items-center space-x-3 mb-5">
+                <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center shadow-lg">
+                  <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                  </svg>
+                </div>
+                <h2 className="text-xl font-bold text-white font-serif">💊 Tedavi Seçimi</h2>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
                 {Object.entries(treatmentCategories).map(([category, treatments]) => (
-                  <div key={category} className="border border-gray-200 rounded-lg p-6">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-4">{category}</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  <div key={category} className="bg-gradient-to-br from-slate-700/50 to-slate-600/50 rounded-xl p-3 border border-slate-500/30">
+                    <h3 className="text-base font-bold text-white mb-3 text-center">{category}</h3>
+                    <div className="space-y-2">
                       {treatments.map((treatment) => (
-                        <label key={treatment} className="flex items-center space-x-3 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={formData.selectedTreatments.includes(treatment)}
-                            onChange={() => handleTreatmentToggle(treatment)}
-                            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                          />
-                          <span className="text-gray-700">{treatment}</span>
-                        </label>
+                        <div key={treatment} className="flex flex-col items-center space-y-2">
+                          <button
+                            type="button"
+                            onClick={() => handleTreatmentToggle(treatment)}
+                            className={`w-full max-w-xs py-2 px-3 rounded-lg transition-all duration-300 cursor-pointer font-medium text-sm text-center ${
+                              formData.selectedTreatments.includes(treatment)
+                                ? 'bg-gradient-to-r from-indigo-500 to-blue-500 text-white shadow-lg transform scale-105'
+                                : 'bg-slate-600/50 text-slate-200 hover:bg-slate-600 hover:text-white hover:shadow-md border border-slate-500/50'
+                            }`}
+                          >
+                            <span>{treatment}</span>
+                          </button>
+                          {formData.selectedTreatments.includes(treatment) && (
+                            <button type="button" onClick={() => handleTreatmentToggle(treatment)} className="px-2 py-1 text-xs bg-gradient-to-r from-red-500 to-rose-500 text-white rounded-md hover:from-red-600 hover:to-rose-600 hover:scale-105 transition-all duration-200 font-medium shadow-sm">❌ Kaldır</button>
+                          )}
+                        </div>
                       ))}
                     </div>
                   </div>
                 ))}
-
-                {/* Treatment Notes */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Tedavi Notları
-                  </label>
-                  <textarea
-                    name="treatmentNotes"
-                    value={formData.treatmentNotes}
-                    onChange={handleInputChange}
-                    rows={4}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Tedavi ile ilgili notlar..."
-                  />
-                </div>
-                
-                {/* Randevu Bilgileri */}
-                <div className="border-t border-gray-200 pt-6">
-                  <div className="flex items-center space-x-3 mb-4">
-                    <input
-                      type="checkbox"
-                      id="hasAppointment"
-                      checked={formData.hasAppointment}
-                      onChange={(e) => setFormData(prev => ({ ...prev, hasAppointment: e.target.checked }))}
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                    />
-                    <label htmlFor="hasAppointment" className="text-lg font-medium text-gray-900">
-                      Hasta için randevu oluştur
-                    </label>
-                  </div>
-                  
-                  {formData.hasAppointment && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Randevu Tarihi *
-                        </label>
-                        <input
-                          type="date"
-                          value={formData.appointmentDate}
-                          onChange={(e) => setFormData(prev => ({ ...prev, appointmentDate: e.target.value }))}
-                          min={new Date().toISOString().split('T')[0]}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        />
-                      </div>
-                      
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Randevu Saati *
-                        </label>
-                        <select
-                          value={formData.appointmentTime}
-                          onChange={(e) => setFormData(prev => ({ ...prev, appointmentTime: e.target.value }))}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        >
-                          {Array.from({ length: 20 }, (_, i) => {
-                            const hour = Math.floor(i / 2) + 9
-                            const minute = (i % 2) * 30
-                            const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
-                            return (
-                              <option key={time} value={time}>
-                                {time}
-                              </option>
-                            )
-                          })}
-                        </select>
-                      </div>
-                      
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Süre (dakika) *
-                        </label>
-                        <select
-                          value={formData.appointmentDuration}
-                          onChange={(e) => setFormData(prev => ({ ...prev, appointmentDuration: parseInt(e.target.value) }))}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        >
-                          <option value={30}>30 dakika</option>
-                          <option value={45}>45 dakika</option>
-                          <option value={60}>60 dakika</option>
-                          <option value={90}>90 dakika</option>
-                          <option value={120}>120 dakika</option>
-                          <option value={180}>180 dakika</option>
-                        </select>
-                      </div>
-                      
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          İşlem Türü *
-                        </label>
-                        <select
-                          value={formData.appointmentTreatment}
-                          onChange={(e) => setFormData(prev => ({ ...prev, appointmentTreatment: e.target.value }))}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        >
-                          <option value="">İşlem seçiniz</option>
-                          {formData.selectedTreatments.length > 0 ? (
-                            formData.selectedTreatments.map((treatment) => (
-                              <option key={treatment} value={treatment}>
-                                {treatment}
-                              </option>
-                            ))
-                          ) : (
-                            <option value="Konsültasyon">Konsültasyon</option>
-                          )}
-                        </select>
-                      </div>
-                      
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Randevu Notları
-                        </label>
-                        <textarea
-                          value={formData.appointmentNotes}
-                          onChange={(e) => setFormData(prev => ({ ...prev, appointmentNotes: e.target.value }))}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          rows={2}
-                          placeholder="Randevu ile ilgili notlar..."
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
               </div>
-            </div>
-          )}
-
-          {/* Step 3: Photos */}
-          {activeStep === 3 && (
-            <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-                <span className="mr-3">📸</span>
-                Fotoğraflar
-              </h2>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {/* Before Photos */}
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4">Öncesi Fotoğraflar</h3>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    multiple
-                    accept="image/*"
-                    onChange={(e) => handlePhotoUpload(e, 'before')}
-                    className="hidden"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="w-full p-4 border-2 border-dashed border-blue-300 rounded-lg text-blue-600 hover:border-blue-400 hover:bg-blue-50 transition-colors duration-200"
-                  >
-                    <svg className="w-8 h-8 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                    </svg>
-                    Öncesi Fotoğraf Ekle
-                  </button>
-                  
-                  {formData.beforePhotos.length > 0 && (
-                    <div className="mt-4 grid grid-cols-2 gap-3">
-                      {formData.beforePhotos.map((photo, index) => (
-                        <div key={index} className="relative">
-                          <img
-                            src={photo}
-                            alt={`Öncesi ${index + 1}`}
-                            className="w-full h-24 object-cover rounded-lg border-2 border-blue-200"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => removePhoto(index, 'before')}
-                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600"
-                          >
-                            ×
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* After Photos */}
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4">Sonrası Fotoğraflar</h3>
-                  <input
-                    type="file"
-                    multiple
-                    accept="image/*"
-                    onChange={(e) => handlePhotoUpload(e, 'after')}
-                    className="hidden"
-                    id="after-photos"
-                  />
-                  <label
-                    htmlFor="after-photos"
-                    className="w-full p-4 border-2 border-dashed border-green-300 rounded-lg text-green-600 hover:border-green-400 hover:bg-green-50 transition-colors duration-200 cursor-pointer block"
-                  >
-                    <svg className="w-8 h-8 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                    </svg>
-                    Sonrası Fotoğraf Ekle
-                  </label>
-                  
-                  {formData.afterPhotos.length > 0 && (
-                    <div className="mt-4 grid grid-cols-2 gap-3">
-                      {formData.afterPhotos.map((photo, index) => (
-                        <div key={index} className="relative">
-                          <img
-                            src={photo}
-                            alt={`Sonrası ${index + 1}`}
-                            className="w-full h-24 object-cover rounded-lg border-2 border-green-200"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => removePhoto(index, 'after')}
-                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600"
-                          >
-                            ×
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-slate-300 mb-2">Tedavi Notları</label>
+                <textarea name="treatmentNotes" value={formData.treatmentNotes} onChange={handleInputChange} rows={3} className="w-full px-3 py-2.5 bg-slate-700/80 border border-slate-600/50 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-400/50 transition-all duration-300 text-sm" placeholder="Tedavi ile ilgili notlar..." />
               </div>
-            </div>
-          )}
-
-          {/* Step 4: Preview and Additional Info */}
-          {activeStep === 4 && (
-            <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-                <span className="mr-3">📋</span>
-                Önizleme ve Ek Bilgiler
-              </h2>
-
-              <div className="space-y-6">
-                {/* Patient Info Summary */}
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h3 className="text-lg font-medium text-gray-900 mb-3">Hasta Bilgileri</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                    <div><strong>Ad Soyad:</strong> {formData.name || 'Belirtilmedi'}</div>
-                    <div><strong>Telefon:</strong> {formData.phone || 'Belirtilmedi'}</div>
-                    <div><strong>E-posta:</strong> {formData.email || 'Belirtilmedi'}</div>
-                    <div><strong>Cinsiyet:</strong> {formData.gender === 'female' ? 'Kadın' : 'Erkek'}</div>
-                    {formData.birthDate && (
-                      <div><strong>Doğum Tarihi:</strong> {new Date(formData.birthDate).toLocaleDateString('tr-TR')}</div>
-                    )}
-                    {formData.address && (
-                      <div className="md:col-span-2"><strong>Adres:</strong> {formData.address}</div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Selected Treatments */}
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h3 className="text-lg font-medium text-gray-900 mb-3">Seçilen Tedaviler</h3>
-                  {formData.selectedTreatments.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
-                      {formData.selectedTreatments.map((treatment) => (
-                        <span key={treatment} className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
-                          {treatment}
-                        </span>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-gray-500">Henüz tedavi seçilmedi</p>
-                  )}
-                  {formData.treatmentNotes && (
-                    <div className="mt-3">
-                      <strong>Tedavi Notları:</strong>
-                      <p className="text-sm text-gray-700 mt-1">{formData.treatmentNotes}</p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Photo Summary */}
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h3 className="text-lg font-medium text-gray-900 mb-3">Fotoğraflar</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <strong>Öncesi:</strong> {formData.beforePhotos.length} fotoğraf
-                    </div>
-                    <div>
-                      <strong>Sonrası:</strong> {formData.afterPhotos.length} fotoğraf
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Appointment Summary */}
-                {formData.hasAppointment && (
-                  <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-                    <h3 className="text-lg font-medium text-blue-900 mb-3">📅 Randevu Bilgileri</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                      <div><strong>Tarih:</strong> {new Date(formData.appointmentDate).toLocaleDateString('tr-TR')}</div>
-                      <div><strong>Saat:</strong> {formData.appointmentTime}</div>
-                      <div><strong>Süre:</strong> {formData.appointmentDuration} dakika</div>
-                      <div><strong>İşlem:</strong> {formData.appointmentTreatment || 'Belirtilmedi'}</div>
-                      {formData.appointmentNotes && (
-                        <div className="md:col-span-2"><strong>Notlar:</strong> {formData.appointmentNotes}</div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Additional Medical Info */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Alerjiler
-                    </label>
-                    <textarea
-                      name="allergies"
-                      value={formData.allergies}
-                      onChange={handleInputChange}
-                      rows={3}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Bilinen alerjiler..."
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Kullandığı İlaçlar
-                    </label>
-                    <textarea
-                      name="medications"
-                      value={formData.medications}
-                      onChange={handleInputChange}
-                      rows={3}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Düzenli kullanılan ilaçlar..."
-                    />
-                  </div>
-
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Tıbbi Geçmiş
-                    </label>
-                    <textarea
-                      name="medicalHistory"
-                      value={formData.medicalHistory}
-                      onChange={handleInputChange}
-                      rows={3}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Önemli tıbbi geçmiş..."
-                    />
-                  </div>
-
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Genel Notlar
-                    </label>
-                    <textarea
-                      name="notes"
-                      value={formData.notes}
-                      onChange={handleInputChange}
-                      rows={3}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Genel notlar..."
-                    />
-                  </div>
-                </div>
-
-                {/* Final Submit Section */}
-                <div className="bg-blue-50 rounded-lg p-6 border border-blue-200">
-                  <h3 className="text-lg font-medium text-blue-900 mb-3">✅ Önizleme Tamamlandı</h3>
-                  <p className="text-blue-700 text-sm mb-4">
-                    Tüm bilgileri kontrol ettiniz. Değişiklik yapmak istiyorsanız önceki adımlara dönebilir, 
-                    onaylıyorsanız aşağıdaki "Güncelle" butonuna tıklayabilirsiniz.
-                  </p>
-                  <div className="flex items-center space-x-2 text-sm text-blue-600">
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span>Form validasyonu: {formData.name.trim() && formData.phone.trim() ? '✅ Geçerli' : '❌ Eksik bilgi'}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Navigation Buttons */}
-          <div className="flex justify-between">
-            <button
-              type="button"
-              onClick={prevStep}
-              disabled={activeStep === 1}
-              className={`px-6 py-3 rounded-lg font-medium transition-colors duration-200 ${
-                activeStep === 1
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-gray-600 text-white hover:bg-gray-700'
-              }`}
-            >
-              <svg className="w-5 h-5 mr-2 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              Önceki
-            </button>
-
-            {activeStep < 4 ? (
-              <button
-                type="button"
-                onClick={nextStep}
-                className="btn-primary px-6 py-3"
-              >
-                Sonraki
-                <svg className="w-5 h-5 ml-2 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={handleSubmit}
-                disabled={isLoading}
-                className="btn-primary px-8 py-3"
-              >
-                {isLoading ? (
-                  <>
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                    Güncelleniyor...
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-5 h-5 mr-2 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    Güncelle
-                  </>
-                )}
-              </button>
-            )}
+            </section>
           </div>
+
+          {/* Sağ Sütun: Randevu */}
+          <div className="xl:col-span-3">
+            <section className="bg-gradient-to-br from-slate-800/50 to-slate-700/50 backdrop-blur-md rounded-2xl shadow-xl border border-slate-600/50 p-6 h-full">
+              <div className="flex items-center space-x-3 mb-5">
+                <div className="w-10 h-10 bg-gradient-to-br from-pink-500 to-rose-500 rounded-xl flex items-center justify-center shadow-lg">
+                  <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <h2 className="text-xl font-bold text-white font-serif">📅 Randevu</h2>
+              </div>
+              <div className="flex items-center space-x-2 mb-4">
+                <input type="checkbox" id="hasAppointment" checked={formData.hasAppointment} onChange={(e) => setFormData(prev => ({ ...prev, hasAppointment: e.target.checked }))} className="h-4 w-4 text-indigo-500 focus:ring-indigo-500 border-slate-600 bg-slate-800 rounded" />
+                <label htmlFor="hasAppointment" className="text-sm font-medium text-slate-200">Randevu oluştur</label>
+              </div>
+              {formData.hasAppointment && (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-xs font-medium text-slate-300 mb-1">Tarih</label>
+                      <input type="date" value={formData.appointmentDate} onChange={(e) => setFormData(prev => ({ ...prev, appointmentDate: e.target.value }))} min={new Date().toISOString().split('T')[0]} className="w-full px-2 py-2 bg-slate-700/80 border border-slate-600/50 rounded text-white text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-300 mb-1">Saat</label>
+                      <select value={formData.appointmentTime} onChange={(e) => setFormData(prev => ({ ...prev, appointmentTime: e.target.value }))} className="w-full px-2 py-2 bg-slate-700/80 border border-slate-600/50 rounded text-white text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400">
+                        {Array.from({ length: 20 }, (_, i) => {
+                          const hour = Math.floor(i / 2) + 9
+                          const minute = (i % 2) * 30
+                          const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
+                          return <option key={time} value={time}>{time}</option>
+                        })}
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-300 mb-1">Süre</label>
+                    <select value={formData.appointmentDuration} onChange={(e) => setFormData(prev => ({ ...prev, appointmentDuration: parseInt(e.target.value) }))} className="w-full px-2 py-2 bg-slate-700/80 border border-slate-600/50 rounded text-white text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400">
+                      <option value={30}>30dk</option>
+                      <option value={45}>45dk</option>
+                      <option value={60}>60dk</option>
+                      <option value={90}>90dk</option>
+                      <option value={120}>120dk</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-300 mb-1">İşlem</label>
+                    <select value={formData.appointmentTreatment} onChange={(e) => setFormData(prev => ({ ...prev, appointmentTreatment: e.target.value }))} className="w-full px-2 py-2 bg-slate-700/80 border border-slate-600/50 rounded text-white text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400">
+                      <option value="">İşlem seçiniz</option>
+                      {formData.selectedTreatments.length > 0 ? (
+                        formData.selectedTreatments.map((t) => (<option key={t} value={t}>{t}</option>))
+                      ) : (
+                        <option value="Konsültasyon">Konsültasyon</option>
+                      )}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-300 mb-1">Not</label>
+                    <textarea value={formData.appointmentNotes} onChange={(e) => setFormData(prev => ({ ...prev, appointmentNotes: e.target.value }))} rows={2} className="w-full px-2 py-2 bg-slate-700/80 border border-slate-600/50 rounded text-white text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400" placeholder="Randevu notu..." />
+                  </div>
+                </div>
+              )}
+            </section>
+          </div>
+        </div>
+
+        {/* Kaydet Butonu */}
+        <div className="flex justify-center pt-6">
+          <button type="button" onClick={handleSubmit} disabled={isLoading} className="px-12 py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white text-xl font-bold rounded-2xl hover:from-blue-600 hover:to-purple-700 transition-all duration-300 shadow-xl hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105">
+            {isLoading ? (
+              <div className="flex items-center space-x-2">
+                <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+                <span>Güncelleniyor...</span>
+              </div>
+            ) : (
+              '✅ Değişiklikleri Kaydet'
+            )}
+          </button>
         </div>
       </main>
     </div>
