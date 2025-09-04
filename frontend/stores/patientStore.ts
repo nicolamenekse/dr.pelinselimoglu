@@ -1,9 +1,17 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
+export interface PatientPhoto {
+  url: string
+  treatments: string[] // Changed to array to support multiple treatments
+  type: 'before' | 'after'
+  uploadedAt: string
+}
+
 export interface Patient {
   id: string
   name: string
+  tcId: string
   phone: string
   email: string
   birthDate: string
@@ -13,6 +21,7 @@ export interface Patient {
   treatmentNotes: string
   beforePhotos: string[]
   afterPhotos: string[]
+  photos: PatientPhoto[] // New structured photos array
   allergies: string
   medications: string
   medicalHistory: string
@@ -32,6 +41,8 @@ interface PatientActions {
   updatePatient: (id: string, updates: Partial<Patient>) => void
   deletePatient: (id: string) => void
   getPatient: (id: string) => Patient | undefined
+  addPatientPhoto: (patientId: string, photo: Omit<PatientPhoto, 'uploadedAt'>) => void
+  removePatientPhoto: (patientId: string, photoUrl: string) => void
   clearError: () => void
 }
 
@@ -110,6 +121,39 @@ export const usePatientStore = create<PatientStore>()(
 
       getPatient: (id) => {
         return get().patients.find((patient) => patient.id === id)
+      },
+
+      addPatientPhoto: (patientId, photoData) => {
+        const newPhoto: PatientPhoto = {
+          ...photoData,
+          uploadedAt: new Date().toISOString()
+        }
+        
+        set((state) => ({
+          patients: state.patients.map((patient) =>
+            patient.id === patientId
+              ? {
+                  ...patient,
+                  photos: [...(patient.photos || []), newPhoto],
+                  updatedAt: new Date().toISOString()
+                }
+              : patient
+          ),
+        }))
+      },
+
+      removePatientPhoto: (patientId, photoUrl) => {
+        set((state) => ({
+          patients: state.patients.map((patient) =>
+            patient.id === patientId
+              ? {
+                  ...patient,
+                  photos: (patient.photos || []).filter(photo => photo.url !== photoUrl),
+                  updatedAt: new Date().toISOString()
+                }
+              : patient
+          ),
+        }))
       },
 
       clearError: () => set({ error: null }),

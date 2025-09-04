@@ -16,6 +16,7 @@ interface TreatmentCategory {
 interface PatientFormData {
   // Kişisel Bilgiler
   name: string
+  tcId: string
   phone: string
   email: string
   birthDate: string
@@ -58,6 +59,7 @@ export default function NewPatientPage() {
   
   const [formData, setFormData] = useState<PatientFormData>({
     name: '',
+    tcId: '',
     phone: '',
     email: '',
     birthDate: '',
@@ -124,6 +126,25 @@ export default function NewPatientPage() {
       ...prev,
       [field]: value
     }))
+  }
+
+  const formatPhoneNumber = (value: string) => {
+    // Remove all non-digit characters
+    const digits = value.replace(/\D/g, '')
+    
+    // Format as 4-3-4 (e.g., 0555 123 4567)
+    if (digits.length <= 4) {
+      return digits
+    } else if (digits.length <= 7) {
+      return `${digits.slice(0, 4)} ${digits.slice(4)}`
+    } else {
+      return `${digits.slice(0, 4)} ${digits.slice(4, 7)} ${digits.slice(7, 11)}`
+    }
+  }
+
+  const handlePhoneChange = (value: string) => {
+    const formatted = formatPhoneNumber(value)
+    handleInputChange('phone', formatted)
   }
 
   const handleTreatmentToggle = (treatment: string) => {
@@ -229,8 +250,14 @@ export default function NewPatientPage() {
     
     try {
       // Form validation
-      if (!formData.name.trim() || !formData.phone.trim()) {
-        throw new Error('Ad ve telefon alanları zorunludur')
+      if (!formData.name.trim() || !formData.tcId.trim() || !formData.phone.trim()) {
+        throw new Error('Ad, TC kimlik numarası ve telefon alanları zorunludur')
+      }
+
+      // TC ID validation (11 digits)
+      const tcIdDigits = formData.tcId.replace(/\D/g, '')
+      if (tcIdDigits.length !== 11) {
+        throw new Error('TC kimlik numarası 11 haneli olmalıdır')
       }
 
       // Convert files to base64 strings
@@ -244,7 +271,8 @@ export default function NewPatientPage() {
       // Create patient data
       const patientData = {
         name: formData.name.trim(),
-        phone: formData.phone.trim(),
+        tcId: formData.tcId.replace(/\D/g, ''), // Store only digits
+        phone: formData.phone.replace(/\D/g, ''), // Store only digits
         email: formData.email.trim(),
         birthDate: formData.birthDate,
         gender: formData.gender,
@@ -253,6 +281,7 @@ export default function NewPatientPage() {
         treatmentNotes: formData.treatmentNotes.trim(),
         beforePhotos: beforePhotoUrls,
         afterPhotos: afterPhotoUrls,
+        photos: [], // Initialize empty photos array
         allergies: formData.allergies.trim(),
         medications: formData.medications.trim(),
         medicalHistory: formData.medicalHistory.trim(),
@@ -343,6 +372,25 @@ export default function NewPatientPage() {
                     />
                   </div>
                   
+                  {/* TC ID */}
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-300 mb-2">TC Kimlik No *</label>
+                    <input
+                      type="text"
+                      value={formData.tcId}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/\D/g, '')
+                        if (value.length <= 11) {
+                          handleInputChange('tcId', value)
+                        }
+                      }}
+                      className="w-full px-3 py-2.5 bg-slate-700/80 border border-slate-600/50 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-400/50 transition-all duration-300 text-sm"
+                      placeholder="12345678901"
+                      maxLength={11}
+                      required
+                    />
+                  </div>
+                  
                   {/* Birth Date & Gender */}
                   <div className="grid grid-cols-2 gap-3">
                     <div>
@@ -376,9 +424,10 @@ export default function NewPatientPage() {
                       <input
                         type="tel"
                         value={formData.phone}
-                        onChange={(e) => handleInputChange('phone', e.target.value)}
+                        onChange={(e) => handlePhoneChange(e.target.value)}
                         className="w-full px-3 py-2.5 bg-slate-700/80 border border-slate-600/50 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-400/50 transition-all duration-300 text-sm"
-                        placeholder="05XX XXX XX XX"
+                        placeholder="0555 123 4567"
+                        maxLength={13}
                         required
                       />
                     </div>

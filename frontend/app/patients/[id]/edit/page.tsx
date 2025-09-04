@@ -173,6 +173,7 @@ export default function EditPatientPage() {
         treatmentNotes: formData.treatmentNotes.trim(),
         beforePhotos: formData.beforePhotos,
         afterPhotos: formData.afterPhotos,
+        photos: patient.photos || [], // Preserve existing photos or initialize empty array
         allergies: formData.allergies.trim(),
         medications: formData.medications.trim(),
         medicalHistory: formData.medicalHistory.trim(),

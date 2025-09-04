@@ -13,7 +13,7 @@ export default function PatientsPage() {
   const searchParams = useSearchParams()
   const { user, checkAuth, isLoading } = useAuthStore()
   const { patients, deletePatient } = usePatientStore()
-  const { appointments, getAppointmentsByPatient, syncAppointmentsWithPatients } = useAppointmentStore()
+  const { getAppointmentsByPatient } = useAppointmentStore()
   
   const [searchTerm, setSearchTerm] = useState('')
   const [filterGender, setFilterGender] = useState<'all' | 'female' | 'male'>('all')
@@ -40,36 +40,7 @@ export default function PatientsPage() {
     }
   }, [user, isLoading, router])
 
-    // Randevu verilerini yükle ve kontrol et
-  useEffect(() => {
-    if (user && patients.length > 0) {
-      console.log('Total appointments in store:', appointments.length)
-      console.log('All appointments:', appointments)
-      
-      // Tüm randevuların patientId'lerini kontrol et
-      const allPatientIds = appointments.map(apt => apt.patientId)
-      const uniquePatientIds = Array.from(new Set(allPatientIds))
-      console.log('All unique patientIds in appointments:', uniquePatientIds)
-      
-      // Her hasta için randevu verilerini yükle
-      patients.forEach(patient => {
-        const patientAppointments = getAppointmentsByPatient(patient.id)
-        console.log(`Patient ${patient.id} (${patient.name}) appointments:`, patientAppointments)
-        console.log(`Patient ID type:`, typeof patient.id, `Value:`, patient.id)
-        
-        // Bu hasta ID'sinin randevularda olup olmadığını kontrol et
-        const hasMatchingAppointments = appointments.some(apt => apt.patientId === patient.id)
-        console.log(`Patient ${patient.name} has matching appointments:`, hasMatchingAppointments)
-        
-        if (appointments.length > 0) {
-          console.log(`First appointment patientId:`, appointments[0]?.patientId, `Type:`, typeof appointments[0]?.patientId)
-        }
-      })
-      
-      // Randevu-hasta senkronizasyonunu yap
-      syncAppointmentsWithPatients(patients)
-    }
-  }, [user, patients, appointments, getAppointmentsByPatient, syncAppointmentsWithPatients])
+  // Removed appointment-related useEffect
 
   // Show success message if redirected from new patient
   const showSuccess = searchParams.get('success') === 'true'
@@ -79,7 +50,7 @@ export default function PatientsPage() {
     .filter(patient => {
       const matchesSearch = patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            patient.phone.includes(searchTerm) ||
-                           patient.email.toLowerCase().includes(searchTerm.toLowerCase())
+                           (patient.tcId && patient.tcId.includes(searchTerm))
       
       const matchesGender = filterGender === 'all' || patient.gender === filterGender
       
@@ -131,38 +102,11 @@ export default function PatientsPage() {
   }, [searchTerm, filterGender, filterTreatment, sortBy, sortOrder])
 
   const handleDeletePatient = (id: string, name: string) => {
-    // Hasta randevularını kontrol et
-    const patientAppointments = getAppointmentsByPatient(id)
-    const hasAppointments = patientAppointments.length > 0
-    
-    let confirmMessage = `${name} adlı hastayı silmek istediğinizden emin misiniz?`
-    
-    if (hasAppointments) {
-      const upcomingCount = patientAppointments.filter(apt => {
-        const aptDate = new Date(apt.date + 'T' + apt.time)
-        return aptDate > new Date() && apt.status !== 'cancelled'
-      }).length
-      
-      const pastCount = patientAppointments.length - upcomingCount
-      
-      confirmMessage += `\n\nBu hastaya ait ${patientAppointments.length} randevu da silinecek:`
-      if (upcomingCount > 0) {
-        confirmMessage += `\n• ${upcomingCount} yaklaşan randevu`
-      }
-      if (pastCount > 0) {
-        confirmMessage += `\n• ${pastCount} geçmiş randevu`
-      }
-      confirmMessage += `\n\nDevam etmek istiyor musunuz?`
-    }
+    const confirmMessage = `${name} adlı hastayı silmek istediğinizden emin misiniz?`
     
     if (confirm(confirmMessage)) {
       deletePatient(id)
-      // Başarı mesajı göster
-      if (hasAppointments) {
-        alert(`${name} adlı hasta ve ${patientAppointments.length} randevusu başarıyla silindi.`)
-      } else {
-        alert(`${name} adlı hasta başarıyla silindi.`)
-      }
+      alert(`${name} adlı hasta başarıyla silindi.`)
     }
   }
 
@@ -186,110 +130,31 @@ export default function PatientsPage() {
     )
   }
 
-  const getPatientAppointments = (patientId: string) => {
-    // Artık sadece patientId ile eşleştirme yap
-    // Senkronizasyon sayesinde tüm randevular doğru patientId'ye sahip olacak
-    const result = getAppointmentsByPatient(patientId)
+  const getCompletedTreatments = (patientId: string) => {
+    const patientAppointments = getAppointmentsByPatient(patientId)
     
-    if (result.length > 0) {
-      console.log(`✅ Found ${result.length} appointments for patient ${patientId}`)
-    } else {
-      console.log(`ℹ️ No appointments found for patient ${patientId}`)
-    }
-    
-    return result
+    return patientAppointments
+      .filter(apt => apt.status === 'completed')
+      .sort((a, b) => {
+        // Sort by date descending (most recent first)
+        const dateA = new Date(a.date + 'T' + a.time)
+        const dateB = new Date(b.date + 'T' + b.time)
+        return dateB.getTime() - dateA.getTime()
+      })
+      .map(apt => ({
+        treatment: apt.treatment,
+        date: apt.date,
+        time: apt.time
+      }))
   }
 
-    const formatAppointmentInfo = (patientId: string) => {
-    const patientAppointments = getPatientAppointments(patientId)
-    
-    
-    
-    if (!patientAppointments || patientAppointments.length === 0) {
-      return {
-        hasAppointments: false,
-        text: "Randevu yok",
-        nextAppointment: null,
-        isUrgent: false,
-        completedTreatments: []
-      }
-    }
-
-    // Sadece gelecekteki randevuları kontrol et
-    const now = new Date()
-    const upcomingAppointments = patientAppointments
-      .filter(apt => {
-        if (!apt.date || !apt.time) return false
-        try {
-          const aptDate = new Date(apt.date + 'T' + apt.time)
-          return aptDate > now && apt.status !== 'cancelled'
-        } catch (error) {
-          console.error('Date parsing error:', error, apt)
-          return false
-        }
-      })
-      .sort((a, b) => {
-        try {
-          const dateA = new Date(a.date + 'T' + a.time)
-          const dateB = new Date(b.date + 'T' + b.time)
-          return dateA.getTime() - dateB.getTime()
-        } catch (error) {
-          console.error('Sort error:', error)
-          return 0
-        }
-      })
-
-    // Geçmiş randevulardan son 2'sini al (tedaviler bölümü için)
-    const pastAppointments = patientAppointments
-      .filter(apt => {
-        if (!apt.date || !apt.time) return false
-        try {
-          const aptDate = new Date(apt.date + 'T' + apt.time)
-          return aptDate <= now && apt.status !== 'cancelled'
-        } catch (error) {
-          console.error('Date parsing error:', error, apt)
-          return false
-        }
-      })
-      .sort((a, b) => {
-        try {
-          const dateA = new Date(a.date + 'T' + a.time)
-          const dateB = new Date(b.date + 'T' + b.time)
-          return dateB.getTime() - dateA.getTime()
-        } catch (error) {
-          console.error('Sort error:', error)
-          return 0
-        }
-      })
-      .slice(0, 2)
-      .map(apt => ({
-        date: apt.date,
-        treatment: apt.treatment
-      }))
-
-    if (upcomingAppointments.length > 0) {
-      const nextAppointment = upcomingAppointments[0]
-      const daysUntilAppointment = Math.ceil((new Date(nextAppointment.date + 'T' + nextAppointment.time).getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-      
-      return {
-        hasAppointments: true,
-        text: `${new Date(nextAppointment.date).toLocaleDateString('tr-TR')} - ${nextAppointment.time} - ${nextAppointment.treatment}`,
-        nextAppointment: nextAppointment,
-        isUrgent: daysUntilAppointment <= 3,
-        upcomingAppointments: upcomingAppointments,
-        completedTreatments: pastAppointments
-      }
-    } else {
-      // Gelecekte randevu yok
-      return {
-        hasAppointments: false,
-        text: "Randevu yok",
-        nextAppointment: null,
-        isUrgent: false,
-        upcomingAppointments: [],
-        completedTreatments: pastAppointments
-      }
-    }
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    return date.toLocaleDateString('tr-TR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    })
   }
 
   if (!mounted || !user) {
@@ -357,7 +222,7 @@ export default function PatientsPage() {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-12 pr-4 py-3 bg-slate-700/80 border border-slate-600/50 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-400/50 transition-all duration-300 text-lg"
-                  placeholder="Hasta adı, telefon veya e-posta..."
+                  placeholder="Hasta adı, telefon veya TC kimlik no..."
                 />
                 <svg className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -474,17 +339,14 @@ export default function PatientsPage() {
               <table className="min-w-full divide-y divide-slate-600/50">
                 <thead className="bg-gradient-to-r from-slate-750/50 to-slate-700/50">
                   <tr>
-                    <th className="w-1/4 px-8 py-6 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
+                    <th className="w-1/3 px-8 py-6 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
                       👤 Hasta
                     </th>
-                    <th className="w-1/6 px-8 py-6 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
+                    <th className="w-1/4 px-8 py-6 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
                       📞 İletişim
                     </th>
-                    <th className="w-1/4 px-8 py-6 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
+                    <th className="w-1/3 px-8 py-6 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
                       💊 Tedaviler
-                    </th>
-                    <th className="w-1/6 px-8 py-6 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
-                      📅 Randevu Tarihi
                     </th>
                     <th className="w-1/6 px-8 py-6 text-right text-xs font-bold text-slate-300 uppercase tracking-wider">
                       ⚙️ İşlemler
@@ -493,7 +355,6 @@ export default function PatientsPage() {
                 </thead>
                 <tbody className="bg-slate-800/30 divide-y divide-slate-600/50">
                   {paginatedPatients.map((patient) => {
-                    const appointmentInfo = formatAppointmentInfo(patient.id)
                     return (
                       <tr key={patient.id} className="hover:bg-slate-750/50 transition-all duration-300 group cursor-pointer">
                         <td className="px-8 py-6 whitespace-nowrap">
@@ -529,8 +390,8 @@ export default function PatientsPage() {
                             className="block"
                           >
                             <div className="text-lg font-semibold text-white group-hover:text-blue-300 transition-colors duration-300">{patient.phone}</div>
-                            {patient.email && (
-                              <div className="text-sm text-slate-300">{patient.email}</div>
+                            {patient.tcId && (
+                              <div className="text-sm text-slate-300">TC: {patient.tcId}</div>
                             )}
                           </Link>
                         </td>
@@ -551,44 +412,32 @@ export default function PatientsPage() {
                                   )}
                                 </div>
                                 
-                                {/* Gerçekleştirilen İşlemler */}
-                                {appointmentInfo.completedTreatments && appointmentInfo.completedTreatments.length > 0 && (
-                                  <div className="flex flex-wrap gap-2">
-                                    {appointmentInfo.completedTreatments.map((treatment, index) => (
-                                      <span key={index} className="inline-block px-3 py-1 text-xs bg-emerald-500/20 text-emerald-300 rounded-lg font-medium border border-emerald-400/30">
-                                        {treatment.treatment}
-                                      </span>
-                                    ))}
-                                  </div>
-                                )}
+                                {/* Uygulanan Tedaviler */}
+                                {(() => {
+                                  const completedTreatments = getCompletedTreatments(patient.id)
+                                  return completedTreatments.length > 0 && (
+                                    <div className="space-y-2">
+                                      <div className="text-xs font-semibold text-emerald-300">✅ Uygulanan Tedaviler:</div>
+                                      <div className="space-y-1">
+                                        {completedTreatments.slice(0, 3).map((treatment, index) => (
+                                          <div key={index} className="text-xs bg-emerald-500/20 text-emerald-200 rounded-lg px-2 py-1 border border-emerald-400/30">
+                                            <div className="font-medium">{treatment.treatment}</div>
+                                            <div className="text-emerald-300/80">{formatDate(treatment.date)}</div>
+                                          </div>
+                                        ))}
+                                        {completedTreatments.length > 3 && (
+                                          <div className="text-xs text-emerald-300/80">
+                                            +{completedTreatments.length - 3} tedavi daha
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )
+                                })()}
                               </div>
                            </Link>
                          </td>
                         
-                        
-                        
-                        <td className="px-8 py-6 whitespace-nowrap text-sm">
-                          <Link
-                            href={`/patients/${patient.id}`}
-                            className="block"
-                          >
-                            <div className="text-center">
-                              {appointmentInfo.hasAppointments ? (
-                                <div>
-                                  <div className={`font-semibold group-hover:text-blue-300 transition-colors duration-300 ${
-                                    appointmentInfo.isUrgent 
-                                      ? 'text-orange-300 bg-orange-500/20 px-3 py-2 rounded-lg border border-orange-400/30' 
-                                      : 'text-white'
-                                  }`}>
-                                    {appointmentInfo.text}
-                                  </div>
-                                </div>
-                              ) : (
-                                <div className="text-slate-400 italic">Randevu bulunmuyor</div>
-                              )}
-                            </div>
-                          </Link>
-                        </td>
                         
                                                  <td className="px-8 py-6 whitespace-nowrap text-right text-sm font-medium">
                            <div className="flex items-center justify-end space-x-3">
@@ -628,7 +477,6 @@ export default function PatientsPage() {
             <div className="p-8">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-stretch">
                 {paginatedPatients.map((patient) => {
-                  const appointmentInfo = formatAppointmentInfo(patient.id)
                   return (
                                          <Link
                        key={patient.id}
@@ -657,24 +505,12 @@ export default function PatientsPage() {
                           <span className="text-slate-400 w-16">📞</span>
                           <span className="font-semibold text-white">{patient.phone}</span>
                         </div>
-                        {patient.email && (
+                        {patient.tcId && (
                           <div className="flex items-center text-sm">
-                            <span className="text-slate-400 w-16">📧</span>
-                            <span className="font-semibold text-white">{patient.email}</span>
+                            <span className="text-slate-400 w-16">🆔</span>
+                            <span className="font-semibold text-white">TC: {patient.tcId}</span>
                           </div>
                         )}
-                        <div className="flex items-start text-sm">
-                          <span className="text-slate-400 w-16 mt-1">📅</span>
-                          <div className="flex-1">
-                            <div className={`font-semibold ${
-                              appointmentInfo.isUrgent 
-                                ? 'text-orange-300 bg-orange-500/20 px-3 py-2 rounded-lg border border-orange-400/30' 
-                                : 'text-white'
-                            }`}>
-                              {appointmentInfo.hasAppointments ? appointmentInfo.text : "Randevu yok"}
-                            </div>
-                          </div>
-                        </div>
                       </div>
                       
                                                                                            <div className="mb-6 flex-1">
@@ -685,16 +521,28 @@ export default function PatientsPage() {
                               {getTreatmentBadges(patient.selectedTreatments)}
                             </div>
                             
-                            {/* Gerçekleştirilen İşlemler */}
-                            {appointmentInfo.completedTreatments && appointmentInfo.completedTreatments.length > 0 && (
-                              <div className="flex flex-wrap gap-2">
-                                {appointmentInfo.completedTreatments.map((treatment, index) => (
-                                  <span key={index} className="text-xs bg-emerald-500/20 text-emerald-300 rounded-lg px-3 py-1 font-medium border border-emerald-400/30">
-                                    {treatment.treatment}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
+                            {/* Uygulanan Tedaviler */}
+                            {(() => {
+                              const completedTreatments = getCompletedTreatments(patient.id)
+                              return completedTreatments.length > 0 && (
+                                <div className="space-y-2">
+                                  <div className="text-xs font-semibold text-emerald-300">✅ Uygulanan Tedaviler:</div>
+                                  <div className="space-y-1">
+                                    {completedTreatments.slice(0, 2).map((treatment, index) => (
+                                      <div key={index} className="text-xs bg-emerald-500/20 text-emerald-200 rounded-lg px-2 py-1 border border-emerald-400/30">
+                                        <div className="font-medium">{treatment.treatment}</div>
+                                        <div className="text-emerald-300/80">{formatDate(treatment.date)}</div>
+                                      </div>
+                                    ))}
+                                    {completedTreatments.length > 2 && (
+                                      <div className="text-xs text-emerald-300/80">
+                                        +{completedTreatments.length - 2} tedavi daha
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              )
+                            })()}
                          </div>
                        </div>
                       
