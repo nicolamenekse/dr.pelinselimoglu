@@ -167,10 +167,36 @@ export default function PatientsPage() {
     }
   }
 
+  const debugPatientData = () => {
+    const allPatients = getAllPatients()
+    console.log('=== DEBUG PATIENT DATA ===')
+    console.log('Total patients:', allPatients.length)
+    
+    allPatients.forEach((patient, index) => {
+      console.log(`Patient ${index + 1}:`, {
+        name: patient.name,
+        tcId: patient.tcId,
+        phone: patient.phone,
+        email: patient.email,
+        hasTcId: !!patient.tcId,
+        tcIdValue: patient.tcId,
+        selectedTreatments: patient.selectedTreatments,
+        hasSelectedTreatments: !!patient.selectedTreatments,
+        selectedTreatmentsLength: patient.selectedTreatments?.length || 0,
+        treatmentNotes: patient.treatmentNotes
+      })
+    })
+    alert(`Debug data logged to console. Check browser console for details.`)
+  }
+
   const getCompletedTreatments = (patientId: string) => {
+    const patient = getAllPatients().find(p => p.id === patientId)
+    if (!patient) return []
+    
     const patientAppointments = getAppointmentsByPatient(patientId)
     
-    return patientAppointments
+    // Randevulardan tamamlanan tedaviler
+    const completedAppointments = patientAppointments
       .filter(apt => apt.status === 'completed')
       .sort((a, b) => {
         // Sort by date descending (most recent first)
@@ -183,6 +209,22 @@ export default function PatientsPage() {
         date: apt.date,
         time: apt.time
       }))
+    
+    // Hasta verisinden selectedTreatments (eğer randevu yoksa)
+    const selectedTreatments = patient.selectedTreatments || []
+    const selectedTreatmentData = selectedTreatments.map((treatment: string) => ({
+      treatment,
+      date: new Date().toISOString().split('T')[0], // Bugünün tarihi
+      time: '00:00'
+    }))
+    
+    // Her iki kaynaktan gelen tedavileri birleştir ve tekrarları kaldır
+    const allTreatments = [...completedAppointments, ...selectedTreatmentData]
+    const uniqueTreatments = allTreatments.filter((treatment, index, self) => 
+      index === self.findIndex(t => t.treatment === treatment.treatment)
+    )
+    
+    return uniqueTreatments
   }
 
   const formatDate = (dateString: string) => {
@@ -195,6 +237,11 @@ export default function PatientsPage() {
   }
 
   const getTreatmentBadges = (treatments: string[]) => {
+    console.log('getTreatmentBadges called with:', treatments)
+    if (!treatments || treatments.length === 0) {
+      console.log('No treatments provided to getTreatmentBadges')
+      return <span className="text-slate-400 text-xs italic">Tedavi seçilmemiş</span>
+    }
     return treatments.slice(0, 3).map((treatment, index) => (
       <span key={index} className="inline-block px-3 py-1 text-xs bg-gradient-to-r from-indigo-500/20 to-purple-500/20 text-indigo-300 rounded-lg mr-2 mb-2 font-medium border border-indigo-400/30">
         {treatment}
@@ -345,15 +392,26 @@ export default function PatientsPage() {
               ({filteredPatients.length} hasta • Sayfa {currentPage}/{totalPages})
             </span>
           </div>
-          <Link
-            href="/patients/new"
-            className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl font-semibold hover:from-blue-600 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
-          >
-            <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-            ✨ Yeni Hasta Ekle
-          </Link>
+          <div className="flex space-x-3">
+            <button
+              onClick={debugPatientData}
+              className="inline-flex items-center px-4 py-3 bg-gradient-to-r from-yellow-500 to-orange-600 text-white rounded-xl font-semibold hover:from-yellow-600 hover:to-orange-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+            >
+              <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              🔍 Debug TC ID
+            </button>
+            <Link
+              href="/patients/new"
+              className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl font-semibold hover:from-blue-600 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+            >
+              <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              ✨ Yeni Hasta Ekle
+            </Link>
+          </div>
         </div>
 
         {/* Success Message */}
@@ -509,7 +567,7 @@ export default function PatientsPage() {
                       📞 İletişim
                     </th>
                     <th className="w-1/3 px-8 py-6 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">
-                      💊 Tedaviler
+                      💊 Uygulanan İşlemler
                     </th>
                     <th className="w-1/6 px-8 py-6 text-right text-xs font-bold text-slate-300 uppercase tracking-wider">
                       ⚙️ İşlemler
@@ -554,9 +612,9 @@ export default function PatientsPage() {
                             className="block"
                           >
                             <div className="text-lg font-semibold text-white group-hover:text-blue-300 transition-colors duration-300">{patient.phone}</div>
-                            {patient.email && (
-                              <div className="text-sm text-slate-300">{patient.email}</div>
-                            )}
+                            <div className="text-sm text-slate-300">
+                              TC: {patient.tcId || '-'}
+                            </div>
                           </Link>
                         </td>
                         
@@ -566,22 +624,11 @@ export default function PatientsPage() {
                              className="block"
                            >
                                                            <div className="space-y-3">
-                                {/* Planlanan Tedaviler */}
-                                <div className="flex flex-wrap gap-2">
-                                  {getTreatmentBadges(patient.selectedTreatments)}
-                                  {patient.selectedTreatments.length > 3 && (
-                                    <span className="inline-block px-3 py-1 text-xs bg-slate-600/50 text-slate-300 rounded-lg border border-slate-500/50">
-                                      +{patient.selectedTreatments.length - 3}
-                                    </span>
-                                  )}
-                                </div>
-                                
                                 {/* Gerçekleştirilen İşlemler */}
                                 {(() => {
                                   const completedTreatments = getCompletedTreatments(patient.id)
-                                  return completedTreatments.length > 0 && (
-                                    <div className="space-y-2">
-                                      <div className="text-xs font-semibold text-emerald-300">✅ Uygulanan Tedaviler:</div>
+                                  if (completedTreatments.length > 0) {
+                                    return (
                                       <div className="space-y-1">
                                         {completedTreatments.slice(0, 3).map((treatment, index) => (
                                           <div key={index} className="text-xs bg-emerald-500/20 text-emerald-200 rounded-lg px-2 py-1 border border-emerald-400/30">
@@ -595,8 +642,14 @@ export default function PatientsPage() {
                                           </div>
                                         )}
                                       </div>
-                                    </div>
-                                  )
+                                    )
+                                  } else {
+                                    return (
+                                      <div className="text-xs text-slate-400 italic">
+                                        Henüz uygulanan tedavi yok
+                                      </div>
+                                    )
+                                  }
                                 })()}
                               </div>
                            </Link>
@@ -669,14 +722,13 @@ export default function PatientsPage() {
                                              <div className="space-y-4 mb-6 flex-1">
                         <div className="flex items-center text-sm">
                           <span className="text-slate-400 w-16">📞</span>
-                          <span className="font-semibold text-white">{patient.phone}</span>
-                        </div>
-                        {patient.email && (
-                          <div className="flex items-center text-sm">
-                            <span className="text-slate-400 w-16">📧</span>
-                            <span className="font-semibold text-white">{patient.email}</span>
+                          <div>
+                            <div className="font-semibold text-white">{patient.phone}</div>
+                            {patient.tcId && (
+                              <div className="text-sm text-slate-300">TC: {patient.tcId}</div>
+                            )}
                           </div>
-                        )}
+                        </div>
                         <div className="flex items-start text-sm">
                           <span className="text-slate-400 w-16 mt-1">📅</span>
                           <div className="flex-1">
@@ -692,19 +744,13 @@ export default function PatientsPage() {
                       </div>
                       
                                                                                            <div className="mb-6 flex-1">
-                         <h4 className="text-sm font-semibold text-slate-300 mb-3">💊 Tedaviler</h4>
+                         <h4 className="text-sm font-semibold text-slate-300 mb-3">💊 Uygulanan İşlemler</h4>
                          <div className="space-y-3">
-                            {/* Planlanan Tedaviler */}
-                            <div className="flex flex-wrap gap-2">
-                              {getTreatmentBadges(patient.selectedTreatments)}
-                            </div>
-                            
                             {/* Gerçekleştirilen İşlemler */}
                             {(() => {
                               const completedTreatments = getCompletedTreatments(patient.id)
-                              return completedTreatments.length > 0 && (
-                                <div className="space-y-2">
-                                  <div className="text-xs font-semibold text-emerald-300">✅ Uygulanan Tedaviler:</div>
+                              if (completedTreatments.length > 0) {
+                                return (
                                   <div className="space-y-1">
                                     {completedTreatments.slice(0, 2).map((treatment, index) => (
                                       <div key={index} className="text-xs bg-emerald-500/20 text-emerald-200 rounded-lg px-2 py-1 border border-emerald-400/30">
@@ -718,8 +764,14 @@ export default function PatientsPage() {
                                       </div>
                                     )}
                                   </div>
-                                </div>
-                              )
+                                )
+                              } else {
+                                return (
+                                  <div className="text-xs text-slate-400 italic">
+                                    Henüz uygulanan tedavi yok
+                                  </div>
+                                )
+                              }
                             })()}
                          </div>
                        </div>

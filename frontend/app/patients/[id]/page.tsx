@@ -1,22 +1,31 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import Header from '@/components/Header'
 import { useAuthStore } from '@/stores/authStore'
-import { usePatientStore, Patient } from '@/stores/patientStore'
+import { usePatientStore, Patient, PatientPhoto } from '@/stores/patientStore'
 import { useAppointmentStore } from '@/stores/appointmentStore'
 
 export default function PatientDetailPage() {
   const router = useRouter()
   const params = useParams()
   const { user, checkAuth, isLoading } = useAuthStore()
-  const { getPatient } = usePatientStore()
+  const { getPatient, addPatientPhoto, removePatientPhoto } = usePatientStore()
   const { getAppointmentsByPatient } = useAppointmentStore()
   
   const [patient, setPatient] = useState<Patient | null>(null)
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null)
+  
+  // Photo upload states
+  const [showPhotoModal, setShowPhotoModal] = useState(false)
+  const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null)
+  const [modalPhotoType, setModalPhotoType] = useState<'before' | 'after'>('before')
+  const [modalPhotoTreatment, setModalPhotoTreatment] = useState('')
+  const [showPhotoViewer, setShowPhotoViewer] = useState(false)
+  const [selectedPhotoForViewer, setSelectedPhotoForViewer] = useState<PatientPhoto | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     checkAuth()
@@ -91,6 +100,85 @@ export default function PatientDetailPage() {
       hour: '2-digit',
       minute: '2-digit'
     })
+  }
+
+  // Photo upload functions
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.readAsDataURL(file)
+      reader.onload = () => resolve(reader.result as string)
+      reader.onerror = error => reject(error)
+    })
+  }
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setSelectedFiles(e.target.files)
+      setShowPhotoModal(true)
+    }
+  }
+
+  const handleModalUpload = async () => {
+    if (selectedFiles && modalPhotoTreatment.trim() && patient) {
+      try {
+        const fileArray = Array.from(selectedFiles)
+        const treatmentList = modalPhotoTreatment.split(',').map(t => t.trim()).filter(t => t.length > 0)
+        
+        for (const file of fileArray) {
+          const base64Url = await fileToBase64(file)
+          const newPhoto: PatientPhoto = {
+            url: base64Url,
+            treatments: treatmentList,
+            type: modalPhotoType,
+            uploadedAt: new Date().toISOString()
+          }
+          
+          addPatientPhoto(patient.id, newPhoto)
+        }
+        
+        // Update local patient state
+        const updatedPatient = getPatient(patient.id)
+        if (updatedPatient) {
+          setPatient(updatedPatient)
+        }
+        
+        setShowPhotoModal(false)
+        setSelectedFiles(null)
+        setModalPhotoTreatment('')
+        setModalPhotoType('before')
+      } catch (error) {
+        alert('Fotoğraf yükleme hatası: ' + (error instanceof Error ? error.message : 'Bilinmeyen hata'))
+      }
+    }
+  }
+
+  const closeModal = () => {
+    setShowPhotoModal(false)
+    setSelectedFiles(null)
+    setModalPhotoTreatment('')
+    setModalPhotoType('before')
+  }
+
+  const openPhotoViewer = (photo: PatientPhoto) => {
+    setSelectedPhotoForViewer(photo)
+    setShowPhotoViewer(true)
+  }
+
+  const closePhotoViewer = () => {
+    setShowPhotoViewer(false)
+    setSelectedPhotoForViewer(null)
+  }
+
+  const removePhoto = (photoUrl: string) => {
+    if (patient) {
+      removePatientPhoto(patient.id, photoUrl)
+      // Update local patient state
+      const updatedPatient = getPatient(patient.id)
+      if (updatedPatient) {
+        setPatient(updatedPatient)
+      }
+    }
   }
 
   return (
@@ -416,65 +504,139 @@ export default function PatientDetailPage() {
             </div>
 
             {/* Photos Section */}
-            <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-                <span className="mr-3">📸</span>
-                Fotoğraf Galerisi
-              </h2>
+            <div className="bg-gradient-to-br from-slate-800/50 to-slate-700/50 rounded-2xl shadow-xl p-6 border border-slate-600/50">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-white flex items-center">
+                  <span className="mr-3">📸</span>
+                  Fotoğraf Galerisi
+                </h2>
+                
+                {/* Upload Button */}
+                <div className="flex items-center space-x-3">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleFileSelect}
+                    className="hidden"
+                  />
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center space-x-2"
+                  >
+                    <span>📷</span>
+                    <span>Fotoğraf Ekle</span>
+                  </button>
+                </div>
+              </div>
               
               {/* Before Photos */}
-              <div className="mb-8">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                  <span className="mr-2">📷</span>
-                  Öncesi Fotoğraflar ({patient.beforePhotos.length})
-                </h3>
-                {patient.beforePhotos.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {patient.beforePhotos.map((photo, index) => (
-                      <div key={index} className="relative group">
-                        <img
-                          src={photo}
-                          alt={`Öncesi fotoğraf ${index + 1}`}
-                          className="w-full h-48 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity duration-200 border-2 border-blue-200"
-                          onClick={() => setSelectedPhoto(photo)}
-                        />
-                        <div className="absolute top-2 left-2 bg-blue-600 text-white text-xs px-2 py-1 rounded-full">
-                          Öncesi
+              {patient.photos && patient.photos.filter(p => p.type === 'before').length > 0 && (
+                <div className="mb-8">
+                  <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+                    <span className="mr-2">🔵</span>
+                    TEDAVİ ÖNCESİ ({patient.photos.filter(p => p.type === 'before').length})
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {patient.photos.filter(p => p.type === 'before').map((photo, index) => (
+                      <div key={index} className="relative group bg-slate-700/50 rounded-lg p-2 border border-blue-600/30 hover:border-blue-500/50 transition-all duration-200">
+                        <div className="relative">
+                          <img
+                            src={photo.url}
+                            alt={`before ${index + 1}`}
+                            onClick={() => openPhotoViewer(photo)}
+                            className="w-full h-32 object-cover rounded-lg border-2 border-blue-500/50 group-hover:border-blue-400/70 transition-colors duration-200 cursor-pointer"
+                          />
+                          
+                          {/* Treatment Info */}
+                          <div className="absolute bottom-2 left-2 right-2 bg-blue-900/80 text-white text-xs p-2 rounded-lg backdrop-blur-sm">
+                            <div className="font-semibold text-center mb-1">
+                              {photo.treatments.join(', ')}
+                            </div>
+                            <div className="text-center text-blue-200 text-xs">
+                              {new Date(photo.uploadedAt).toLocaleDateString('tr-TR', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </div>
+                          </div>
+                          
+                          {/* Remove Button */}
+                          <button
+                            type="button"
+                            onClick={() => removePhoto(photo.url)}
+                            className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center text-sm hover:bg-red-600 hover:scale-110 shadow-lg"
+                            title="Fotoğrafı kaldır"
+                          >
+                            ×
+                          </button>
                         </div>
                       </div>
                     ))}
                   </div>
-                ) : (
-                  <p className="text-gray-500 text-center py-8 bg-gray-50 rounded-lg">Henüz öncesi fotoğraf yüklenmemiş</p>
-                )}
-              </div>
+                </div>
+              )}
 
               {/* After Photos */}
-              <div>
-                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                  <span className="mr-2">📷</span>
-                  Sonrası Fotoğraflar ({patient.afterPhotos.length})
-                </h3>
-                {patient.afterPhotos.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {patient.afterPhotos.map((photo, index) => (
-                      <div key={index} className="relative group">
-                        <img
-                          src={photo}
-                          alt={`Sonrası fotoğraf ${index + 1}`}
-                          className="w-full h-48 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity duration-200 border-2 border-green-200"
-                          onClick={() => setSelectedPhoto(photo)}
-                        />
-                        <div className="absolute top-2 left-2 bg-green-600 text-white text-xs px-2 py-1 rounded-full">
-                          Sonrası
+              {patient.photos && patient.photos.filter(p => p.type === 'after').length > 0 && (
+                <div className="mb-8">
+                  <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+                    <span className="mr-2">🟢</span>
+                    TEDAVİ SONRASI ({patient.photos.filter(p => p.type === 'after').length})
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {patient.photos.filter(p => p.type === 'after').map((photo, index) => (
+                      <div key={index} className="relative group bg-slate-700/50 rounded-lg p-2 border border-emerald-600/30 hover:border-emerald-500/50 transition-all duration-200">
+                        <div className="relative">
+                          <img
+                            src={photo.url}
+                            alt={`after ${index + 1}`}
+                            onClick={() => openPhotoViewer(photo)}
+                            className="w-full h-32 object-cover rounded-lg border-2 border-emerald-500/50 group-hover:border-emerald-400/70 transition-colors duration-200 cursor-pointer"
+                          />
+                          
+                          {/* Treatment Info */}
+                          <div className="absolute bottom-2 left-2 right-2 bg-emerald-900/80 text-white text-xs p-2 rounded-lg backdrop-blur-sm">
+                            <div className="font-semibold text-center mb-1">
+                              {photo.treatments.join(', ')}
+                            </div>
+                            <div className="text-center text-emerald-200 text-xs">
+                              {new Date(photo.uploadedAt).toLocaleDateString('tr-TR', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </div>
+                          </div>
+                          
+                          {/* Remove Button */}
+                          <button
+                            type="button"
+                            onClick={() => removePhoto(photo.url)}
+                            className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center text-sm hover:bg-red-600 hover:scale-110 shadow-lg"
+                            title="Fotoğrafı kaldır"
+                          >
+                            ×
+                          </button>
                         </div>
                       </div>
                     ))}
                   </div>
-                ) : (
-                  <p className="text-gray-500 text-center py-8 bg-gray-50 rounded-lg">Henüz sonrası fotoğraf yüklenmemiş</p>
-                )}
-              </div>
+                </div>
+              )}
+
+              {/* No Photos Message */}
+              {(!patient.photos || patient.photos.length === 0) && (
+                <div className="text-center py-12">
+                  <div className="text-6xl mb-4">📸</div>
+                  <h3 className="text-xl font-semibold text-slate-300 mb-2">Henüz fotoğraf yüklenmemiş</h3>
+                  <p className="text-slate-400 mb-6">Hasta için fotoğraf eklemek için yukarıdaki butonu kullanın</p>
+                </div>
+              )}
             </div>
           </div>
 
@@ -572,23 +734,116 @@ export default function PatientDetailPage() {
           </div>
         </div>
 
-        {/* Photo Modal */}
-        {selectedPhoto && (
-          <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+        {/* Photo Upload Modal */}
+        {showPhotoModal && (
+          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+            <div className="bg-slate-800 rounded-2xl p-6 w-full max-w-md border border-slate-600/50 shadow-2xl">
+              <h3 className="text-xl font-bold text-white mb-6 text-center">📷 Fotoğraf Yükle</h3>
+              
+              {/* Photo Type Selection */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-slate-300 mb-3">Fotoğraf Türü</label>
+                <div className="flex space-x-4">
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      value="before"
+                      checked={modalPhotoType === 'before'}
+                      onChange={(e) => setModalPhotoType(e.target.value as 'before' | 'after')}
+                      className="mr-2 text-blue-500"
+                    />
+                    <span className="text-slate-300">🔵 Tedavi Öncesi</span>
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      value="after"
+                      checked={modalPhotoType === 'after'}
+                      onChange={(e) => setModalPhotoType(e.target.value as 'before' | 'after')}
+                      className="mr-2 text-emerald-500"
+                    />
+                    <span className="text-slate-300">🟢 Tedavi Sonrası</span>
+                  </label>
+                </div>
+              </div>
+              
+              {/* Treatment Input */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Uygulanan İşlem (virgülle ayırın)
+                </label>
+                <input
+                  type="text"
+                  value={modalPhotoTreatment}
+                  onChange={(e) => setModalPhotoTreatment(e.target.value)}
+                  placeholder="Örn: Botoks, Dolgu, Lazer"
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              
+              {/* Action Buttons */}
+              <div className="flex space-x-3">
+                <button
+                  onClick={closeModal}
+                  className="flex-1 px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-colors"
+                >
+                  İptal
+                </button>
+                <button
+                  onClick={handleModalUpload}
+                  disabled={!modalPhotoTreatment.trim()}
+                  className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                >
+                  Yükle
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Photo Viewer Modal */}
+        {showPhotoViewer && selectedPhotoForViewer && (
+          <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4">
             <div className="relative max-w-4xl max-h-full">
-              <img
-                src={selectedPhoto}
-                alt="Büyük fotoğraf"
-                className="max-w-full max-h-full object-contain rounded-lg"
-              />
               <button
-                onClick={() => setSelectedPhoto(null)}
-                className="absolute top-4 right-4 bg-white bg-opacity-90 p-2 rounded-full hover:bg-opacity-100 transition-all duration-200"
+                onClick={closePhotoViewer}
+                className="absolute -top-4 -right-4 w-10 h-10 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors z-10"
               >
-                <svg className="w-6 h-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
+              
+              <div className="relative">
+                <img
+                  src={selectedPhotoForViewer.url}
+                  alt={`${selectedPhotoForViewer.type} photo`}
+                  className="max-w-full max-h-[80vh] object-contain rounded-lg"
+                />
+                
+                {/* Photo Info Overlay */}
+                <div className="absolute bottom-0 left-0 right-0 bg-black/80 text-white p-4 rounded-b-lg">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-lg font-bold">
+                        {selectedPhotoForViewer.type === 'before' ? '🔵 Tedavi Öncesi' : '🟢 Tedavi Sonrası'}
+                      </div>
+                      <div className="text-sm text-gray-300">
+                        {selectedPhotoForViewer.treatments.join(', ')}
+                      </div>
+                    </div>
+                    <div className="text-sm text-gray-400">
+                      {new Date(selectedPhotoForViewer.uploadedAt).toLocaleDateString('tr-TR', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )}

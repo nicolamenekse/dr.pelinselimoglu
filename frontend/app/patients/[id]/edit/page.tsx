@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Header from '@/components/Header'
 import { useAuthStore } from '@/stores/authStore'
-import { usePatientStore, Patient } from '@/stores/patientStore'
+import { usePatientStore, Patient, PatientPhoto } from '@/stores/patientStore'
 import { useAppointmentStore } from '@/stores/appointmentStore'
 
 export default function EditPatientPage() {
@@ -32,6 +32,9 @@ export default function EditPatientPage() {
     treatmentNotes: '',
     beforePhotos: [] as string[],
     afterPhotos: [] as string[],
+    photos: [] as PatientPhoto[],
+    photoType: 'before' as 'before' | 'after',
+    photoTreatment: '',
     allergies: '',
     medications: '',
     medicalHistory: '',
@@ -84,6 +87,9 @@ export default function EditPatientPage() {
           treatmentNotes: foundPatient.treatmentNotes,
           beforePhotos: foundPatient.beforePhotos,
           afterPhotos: foundPatient.afterPhotos,
+          photos: foundPatient.photos || [],
+          photoType: 'before',
+          photoTreatment: '',
           allergies: foundPatient.allergies,
           medications: foundPatient.medications,
           medicalHistory: foundPatient.medicalHistory,
@@ -133,6 +139,42 @@ export default function EditPatientPage() {
     setFormData(prev => ({
       ...prev,
       [type === 'before' ? 'beforePhotos' : 'afterPhotos']: prev[type === 'before' ? 'beforePhotos' : 'afterPhotos'].filter((_, i) => i !== index)
+    }))
+  }
+
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.readAsDataURL(file)
+      reader.onload = () => resolve(reader.result as string)
+      reader.onerror = error => reject(error)
+    })
+  }
+
+  const handlePhotoUploadWithDetails = async (type: 'before' | 'after', files: FileList, treatments: string) => {
+    const fileArray = Array.from(files)
+    const treatmentList = treatments.split(',').map(t => t.trim()).filter(t => t.length > 0)
+    
+    for (const file of fileArray) {
+      const base64Url = await fileToBase64(file)
+      const newPhoto: PatientPhoto = {
+        url: base64Url,
+        treatments: treatmentList,
+        type: type,
+        uploadedAt: new Date().toISOString()
+      }
+      
+      setFormData(prev => ({
+        ...prev,
+        photos: [...prev.photos, newPhoto]
+      }))
+    }
+  }
+
+  const removePhotoWithDetails = (photoUrl: string) => {
+    setFormData(prev => ({
+      ...prev,
+      photos: prev.photos.filter(photo => photo.url !== photoUrl)
     }))
   }
 
@@ -350,33 +392,182 @@ export default function EditPatientPage() {
                   </div>
                   <h2 className="text-xl font-bold text-white font-serif">📸 Fotoğraflar</h2>
                 </div>
-                <div className="mb-4">
-                  <h3 className="text-sm font-semibold text-slate-300 mb-2">Tedavi Öncesi</h3>
-                  <input ref={fileInputRef} type="file" multiple accept="image/*" onChange={(e) => handlePhotoUpload(e, 'before')} className="hidden" />
-                  <button type="button" onClick={() => fileInputRef.current?.click()} className="w-full py-2 px-3 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-lg text-sm font-medium hover:from-blue-600 hover:to-indigo-600 transition-all duration-300 shadow-lg">📷 Fotoğraf Seç</button>
-                  {formData.beforePhotos.length > 0 && (
-                    <div className="grid grid-cols-2 gap-2 mt-2">
-                      {formData.beforePhotos.map((photo, index) => (
-                        <div key={index} className="relative group">
-                          <img src={photo} alt={`Before ${index + 1}`} className="w-full h-16 object-cover rounded-lg border-2 border-blue-300" />
-                          <button type="button" onClick={() => removePhoto(index, 'before')} className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-xs hover:bg-red-600">×</button>
-                        </div>
-                      ))}
+                {/* Photo Upload with Details */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-semibold text-slate-300 mb-3">📸 Fotoğraf Yükleme</h3>
+                  
+                  {/* Photo Type Selection */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-medium text-slate-400 mb-2">Fotoğraf Türü</label>
+                      <select
+                        value={formData.photoType}
+                        onChange={(e) => setFormData(prev => ({ ...prev, photoType: e.target.value as 'before' | 'after' }))}
+                        className="w-full py-2 px-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="before">🔵 Tedavi Öncesi</option>
+                        <option value="after">🟢 Tedavi Sonrası</option>
+                      </select>
                     </div>
-                  )}
-                </div>
-                <div>
-                  <h3 className="text-sm font-semibold text-slate-300 mb-2">Tedavi Sonrası</h3>
-                  <input type="file" multiple accept="image/*" onChange={(e) => handlePhotoUpload(e, 'after')} className="hidden" id="after-photos" />
-                  <label htmlFor="after-photos" className="w-full py-2 px-3 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-lg text-sm font-medium hover:from-emerald-600 hover:to-green-600 transition-all duration-300 shadow-lg cursor-pointer text-center block">📷 Fotoğraf Seç</label>
-                  {formData.afterPhotos.length > 0 && (
-                    <div className="grid grid-cols-2 gap-2 mt-2">
-                      {formData.afterPhotos.map((photo, index) => (
-                        <div key={index} className="relative group">
-                          <img src={photo} alt={`After ${index + 1}`} className="w-full h-16 object-cover rounded-lg border-2 border-emerald-300" />
-                          <button type="button" onClick={() => removePhoto(index, 'after')} className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-xs hover:bg-red-600">×</button>
+                    
+                    <div>
+                      <label className="block text-xs font-medium text-slate-400 mb-2">Uygulanan İşlem</label>
+                      <input
+                        type="text"
+                        value={formData.photoTreatment}
+                        onChange={(e) => setFormData(prev => ({ ...prev, photoTreatment: e.target.value }))}
+                        placeholder="Örn: Botoks, Dolgu, Lazer..."
+                        className="w-full py-2 px-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+                  
+                  {/* File Upload */}
+                  <div>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={(e) => {
+                        if (e.target.files && formData.photoTreatment) {
+                          handlePhotoUploadWithDetails(formData.photoType, e.target.files, formData.photoTreatment)
+                          setFormData(prev => ({ ...prev, photoTreatment: '' }))
+                        }
+                      }}
+                      className="hidden"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (formData.photoTreatment) {
+                          fileInputRef.current?.click()
+                        }
+                      }}
+                      disabled={!formData.photoTreatment}
+                      className={`w-full py-2 px-3 rounded-lg text-sm font-medium transition-all duration-300 shadow-lg ${
+                        formData.photoTreatment
+                          ? formData.photoType === 'before'
+                            ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white hover:from-blue-600 hover:to-indigo-600'
+                            : 'bg-gradient-to-r from-emerald-500 to-green-500 text-white hover:from-emerald-600 hover:to-green-600'
+                          : 'bg-slate-600 text-slate-400 cursor-not-allowed'
+                      }`}
+                    >
+                      {formData.photoType === 'before' ? '🔵 Öncesi Fotoğraf Seç' : '🟢 Sonrası Fotoğraf Seç'}
+                    </button>
+                    {!formData.photoTreatment && (
+                      <p className="text-xs text-slate-400 mt-1">Önce uygulanan işlemi girin</p>
+                    )}
+                  </div>
+                  
+                  {/* Uploaded Photos */}
+                  {formData.photos.length > 0 && (
+                    <div className="space-y-6 p-4 bg-slate-800/30 rounded-xl border border-slate-600/50">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-sm font-bold text-white flex items-center">
+                          <span className="w-2 h-2 bg-green-400 rounded-full mr-2"></span>
+                          📸 Yüklenen Fotoğraflar ({formData.photos.length})
+                        </h4>
+                        <div className="text-xs text-slate-400">
+                          {formData.photos.filter(p => p.type === 'before').length} öncesi, {formData.photos.filter(p => p.type === 'after').length} sonrası
                         </div>
-                      ))}
+                      </div>
+                      
+                      {/* Before Photos */}
+                      {formData.photos.filter(p => p.type === 'before').length > 0 && (
+                        <div className="space-y-3">
+                          <h5 className="text-xs font-bold text-blue-300 flex items-center">
+                            <span className="w-2 h-2 bg-blue-400 rounded-full mr-2"></span>
+                            🔵 TEDAVİ ÖNCESİ ({formData.photos.filter(p => p.type === 'before').length})
+                          </h5>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {formData.photos.filter(p => p.type === 'before').map((photo, index) => (
+                              <div key={index} className="relative group bg-slate-700/50 rounded-lg p-2 border border-blue-600/30 hover:border-blue-500/50 transition-all duration-200">
+                                <div className="relative">
+                                  <img
+                                    src={photo.url}
+                                    alt={`before ${index + 1}`}
+                                    className="w-full h-24 object-cover rounded-lg border-2 border-blue-500/50 group-hover:border-blue-400/70 transition-colors duration-200"
+                                  />
+                                  
+                                  {/* Treatment Info */}
+                                  <div className="absolute bottom-2 left-2 right-2 bg-blue-900/80 text-white text-xs p-2 rounded-lg backdrop-blur-sm">
+                                    <div className="font-semibold text-center mb-1">
+                                      {photo.treatments.join(', ')}
+                                    </div>
+                                    <div className="text-center text-blue-200 text-xs">
+                                      {new Date(photo.uploadedAt).toLocaleDateString('tr-TR', {
+                                        day: '2-digit',
+                                        month: '2-digit',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                      })}
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Remove Button */}
+                                  <button
+                                    type="button"
+                                    onClick={() => removePhotoWithDetails(photo.url)}
+                                    className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center text-sm hover:bg-red-600 hover:scale-110 shadow-lg"
+                                    title="Fotoğrafı kaldır"
+                                  >
+                                    ×
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* After Photos */}
+                      {formData.photos.filter(p => p.type === 'after').length > 0 && (
+                        <div className="space-y-3">
+                          <h5 className="text-xs font-bold text-emerald-300 flex items-center">
+                            <span className="w-2 h-2 bg-emerald-400 rounded-full mr-2"></span>
+                            🟢 TEDAVİ SONRASI ({formData.photos.filter(p => p.type === 'after').length})
+                          </h5>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {formData.photos.filter(p => p.type === 'after').map((photo, index) => (
+                              <div key={index} className="relative group bg-slate-700/50 rounded-lg p-2 border border-emerald-600/30 hover:border-emerald-500/50 transition-all duration-200">
+                                <div className="relative">
+                                  <img
+                                    src={photo.url}
+                                    alt={`after ${index + 1}`}
+                                    className="w-full h-24 object-cover rounded-lg border-2 border-emerald-500/50 group-hover:border-emerald-400/70 transition-colors duration-200"
+                                  />
+                                  
+                                  {/* Treatment Info */}
+                                  <div className="absolute bottom-2 left-2 right-2 bg-emerald-900/80 text-white text-xs p-2 rounded-lg backdrop-blur-sm">
+                                    <div className="font-semibold text-center mb-1">
+                                      {photo.treatments.join(', ')}
+                                    </div>
+                                    <div className="text-center text-emerald-200 text-xs">
+                                      {new Date(photo.uploadedAt).toLocaleDateString('tr-TR', {
+                                        day: '2-digit',
+                                        month: '2-digit',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                      })}
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Remove Button */}
+                                  <button
+                                    type="button"
+                                    onClick={() => removePhotoWithDetails(photo.url)}
+                                    className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center text-sm hover:bg-red-600 hover:scale-110 shadow-lg"
+                                    title="Fotoğrafı kaldır"
+                                  >
+                                    ×
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

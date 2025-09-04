@@ -13,6 +13,13 @@ interface TreatmentCategory {
   treatments: string[]
 }
 
+interface PatientPhoto {
+  url: string
+  treatments: string[]
+  type: 'before' | 'after'
+  uploadedAt: string
+}
+
 interface PatientFormData {
   // Kişisel Bilgiler
   name: string
@@ -30,6 +37,9 @@ interface PatientFormData {
   // Fotoğraflar
   beforePhotos: File[]
   afterPhotos: File[]
+  photos: PatientPhoto[]
+  photoType: 'before' | 'after'
+  photoTreatment: string
   
   // Ek Bilgiler
   allergies: string
@@ -55,6 +65,10 @@ export default function NewPatientPage() {
   const { addAppointment } = useAppointmentStore()
   const [isLoading, setIsLoading] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const [showPhotoModal, setShowPhotoModal] = useState(false)
+  const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null)
+  const [modalPhotoType, setModalPhotoType] = useState<'before' | 'after'>('before')
+  const [modalPhotoTreatment, setModalPhotoTreatment] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
   
   const [formData, setFormData] = useState<PatientFormData>({
@@ -69,6 +83,9 @@ export default function NewPatientPage() {
     treatmentNotes: '',
     beforePhotos: [],
     afterPhotos: [],
+    photos: [],
+    photoType: 'before',
+    photoTreatment: '',
     allergies: '',
     medications: '',
     medicalHistory: '',
@@ -129,12 +146,18 @@ export default function NewPatientPage() {
       formattedValue = formatPhoneNumber(value)
     } else if (field === 'tcId') {
       formattedValue = formatTcId(value)
+      console.log('TC ID Input - Original value:', value)
+      console.log('TC ID Input - Formatted value:', formattedValue)
     }
     
-    setFormData(prev => ({
-      ...prev,
-      [field]: formattedValue
-    }))
+    setFormData(prev => {
+      const newData = {
+        ...prev,
+        [field]: formattedValue
+      }
+      console.log('Form Data after update:', newData)
+      return newData
+    })
   }
 
   const handleTreatmentToggle = (treatment: string) => {
@@ -221,6 +244,7 @@ export default function NewPatientPage() {
   const formatTcId = (value: string) => {
     // Sadece rakamları al ve maksimum 11 rakam
     const numbers = value.replace(/\D/g, '').slice(0, 11)
+    console.log('formatTcId - Input:', value, 'Output:', numbers)
     return numbers
   }
 
@@ -253,6 +277,57 @@ export default function NewPatientPage() {
     }
   }
 
+  const handlePhotoUploadWithDetails = async (type: 'before' | 'after', files: FileList, treatments: string) => {
+    const fileArray = Array.from(files)
+    const treatmentList = treatments.split(',').map(t => t.trim()).filter(t => t.length > 0)
+    
+    for (const file of fileArray) {
+      const base64Url = await fileToBase64(file)
+      const newPhoto: PatientPhoto = {
+        url: base64Url,
+        treatments: treatmentList,
+        type: type,
+        uploadedAt: new Date().toISOString()
+      }
+      
+      setFormData(prev => ({
+        ...prev,
+        photos: [...prev.photos, newPhoto]
+      }))
+    }
+  }
+
+  const removePhotoWithDetails = (photoUrl: string) => {
+    setFormData(prev => ({
+      ...prev,
+      photos: prev.photos.filter(photo => photo.url !== photoUrl)
+    }))
+  }
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setSelectedFiles(e.target.files)
+      setShowPhotoModal(true)
+    }
+  }
+
+  const handleModalUpload = async () => {
+    if (selectedFiles && modalPhotoTreatment.trim()) {
+      await handlePhotoUploadWithDetails(modalPhotoType, selectedFiles, modalPhotoTreatment)
+      setShowPhotoModal(false)
+      setSelectedFiles(null)
+      setModalPhotoTreatment('')
+      setModalPhotoType('before')
+    }
+  }
+
+  const closeModal = () => {
+    setShowPhotoModal(false)
+    setSelectedFiles(null)
+    setModalPhotoTreatment('')
+    setModalPhotoType('before')
+  }
+
   const fileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader()
@@ -267,8 +342,8 @@ export default function NewPatientPage() {
     
     try {
       // Form validation
-      if (!formData.name.trim() || !formData.phone.trim()) {
-        throw new Error('Ad ve telefon alanları zorunludur')
+      if (!formData.name.trim() || !formData.phone.trim() || !formData.tcId.trim()) {
+        throw new Error('Ad, telefon ve TC kimlik numarası alanları zorunludur')
       }
 
       // Convert files to base64 strings
@@ -282,6 +357,7 @@ export default function NewPatientPage() {
       // Create patient data
       const patientData = {
         name: formData.name.trim(),
+        tcId: formData.tcId.trim(),
         phone: formData.phone.trim(),
         email: formData.email.trim(),
         birthDate: formData.birthDate,
@@ -291,11 +367,15 @@ export default function NewPatientPage() {
         treatmentNotes: formData.treatmentNotes.trim(),
         beforePhotos: beforePhotoUrls,
         afterPhotos: afterPhotoUrls,
+        photos: formData.photos,
         allergies: formData.allergies.trim(),
         medications: formData.medications.trim(),
         medicalHistory: formData.medicalHistory.trim(),
         notes: formData.notes.trim()
       }
+
+      console.log('Form Data TC ID:', formData.tcId)
+      console.log('Patient Data TC ID:', patientData.tcId)
 
       // Add patient
       addPatient(patientData)
@@ -485,89 +565,139 @@ export default function NewPatientPage() {
                   <h2 className="text-xl font-bold text-white font-serif">📸 Fotoğraflar</h2>
                 </div>
                 
-                {/* Before Photos */}
-                <div className="mb-4">
-                  <h3 className="text-sm font-semibold text-slate-300 mb-2 flex items-center">
-                    <span className="w-2 h-2 bg-blue-400 rounded-full mr-2"></span>
-                    Tedavi Öncesi
-                  </h3>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    multiple
-                    accept="image/*"
-                    onChange={(e) => e.target.files && handlePhotoUpload('before', e.target.files)}
-                    className="hidden"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="w-full py-2 px-3 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-lg text-sm font-medium hover:from-blue-600 hover:to-indigo-600 transition-all duration-300 shadow-lg"
-                  >
-                    📷 Fotoğraf Seç
-                  </button>
+                {/* Photo Upload with Details */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-semibold text-slate-300 mb-3">📸 Fotoğraf Yükleme</h3>
                   
-                  {formData.beforePhotos.length > 0 && (
-                    <div className="grid grid-cols-2 gap-2 mt-2">
-                      {formData.beforePhotos.map((file, index) => (
-                        <div key={index} className="relative group">
-                          <img
-                            src={URL.createObjectURL(file)}
-                            alt={`Before ${index + 1}`}
-                            className="w-full h-16 object-cover rounded-lg border-2 border-blue-300"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => removePhoto('before', index)}
-                            className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-xs hover:bg-red-600"
-                          >
-                            ×
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                
-                {/* After Photos */}
-                <div>
-                  <h3 className="text-sm font-semibold text-slate-300 mb-2 flex items-center">
-                    <span className="w-2 h-2 bg-emerald-400 rounded-full mr-2"></span>
-                    Tedavi Sonrası
-                  </h3>
-                  <input
-                    type="file"
-                    multiple
-                    accept="image/*"
-                    onChange={(e) => e.target.files && handlePhotoUpload('after', e.target.files)}
-                    className="hidden"
-                    id="after-photos"
-                  />
-                  <label
-                    htmlFor="after-photos"
-                    className="w-full py-2 px-3 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-lg text-sm font-medium hover:from-emerald-600 hover:to-green-600 transition-all duration-300 shadow-lg cursor-pointer text-center block"
-                  >
-                    📷 Fotoğraf Seç
-                  </label>
                   
-                  {formData.afterPhotos.length > 0 && (
-                    <div className="grid grid-cols-2 gap-2 mt-2">
-                      {formData.afterPhotos.map((file, index) => (
-                        <div key={index} className="relative group">
-                          <img
-                            src={URL.createObjectURL(file)}
-                            alt={`After ${index + 1}`}
-                            className="w-full h-16 object-cover rounded-lg border-2 border-emerald-300"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => removePhoto('after', index)}
-                            className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-xs hover:bg-red-600"
-                          >
-                            ×
-                          </button>
+                  {/* File Upload */}
+                  <div>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={handleFileSelect}
+                      className="hidden"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-full py-2 px-3 rounded-lg text-sm font-medium transition-all duration-300 shadow-lg bg-gradient-to-r from-blue-500 to-indigo-500 text-white hover:from-blue-600 hover:to-indigo-600"
+                    >
+                      📷 Fotoğraf Seç
+                    </button>
+                    <p className="text-xs text-slate-400 mt-1">Fotoğraf seçtikten sonra tür ve işlem bilgilerini girebilirsiniz</p>
+                  </div>
+                  
+                  {/* Uploaded Photos */}
+                  {formData.photos.length > 0 && (
+                    <div className="space-y-6 p-4 bg-slate-800/30 rounded-xl border border-slate-600/50">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-sm font-bold text-white flex items-center">
+                          <span className="w-2 h-2 bg-green-400 rounded-full mr-2"></span>
+                          📸 Yüklenen Fotoğraflar ({formData.photos.length})
+                        </h4>
+                        <div className="text-xs text-slate-400">
+                          {formData.photos.filter(p => p.type === 'before').length} öncesi, {formData.photos.filter(p => p.type === 'after').length} sonrası
                         </div>
-                      ))}
+                      </div>
+                      
+                      {/* Before Photos */}
+                      {formData.photos.filter(p => p.type === 'before').length > 0 && (
+                        <div className="space-y-3">
+                          <h5 className="text-xs font-bold text-blue-300 flex items-center">
+                            <span className="w-2 h-2 bg-blue-400 rounded-full mr-2"></span>
+                            🔵 TEDAVİ ÖNCESİ ({formData.photos.filter(p => p.type === 'before').length})
+                          </h5>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {formData.photos.filter(p => p.type === 'before').map((photo, index) => (
+                              <div key={index} className="relative group bg-slate-700/50 rounded-lg p-2 border border-blue-600/30 hover:border-blue-500/50 transition-all duration-200">
+                                <div className="relative">
+                                  <img
+                                    src={photo.url}
+                                    alt={`before ${index + 1}`}
+                                    className="w-full h-24 object-cover rounded-lg border-2 border-blue-500/50 group-hover:border-blue-400/70 transition-colors duration-200"
+                                  />
+                                  
+                                  {/* Treatment Info */}
+                                  <div className="absolute bottom-2 left-2 right-2 bg-blue-900/80 text-white text-xs p-2 rounded-lg backdrop-blur-sm">
+                                    <div className="font-semibold text-center mb-1">
+                                      {photo.treatments.join(', ')}
+                                    </div>
+                                    <div className="text-center text-blue-200 text-xs">
+                                      {new Date(photo.uploadedAt).toLocaleDateString('tr-TR', {
+                                        day: '2-digit',
+                                        month: '2-digit',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                      })}
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Remove Button */}
+                                  <button
+                                    type="button"
+                                    onClick={() => removePhotoWithDetails(photo.url)}
+                                    className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center text-sm hover:bg-red-600 hover:scale-110 shadow-lg"
+                                    title="Fotoğrafı kaldır"
+                                  >
+                                    ×
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* After Photos */}
+                      {formData.photos.filter(p => p.type === 'after').length > 0 && (
+                        <div className="space-y-3">
+                          <h5 className="text-xs font-bold text-emerald-300 flex items-center">
+                            <span className="w-2 h-2 bg-emerald-400 rounded-full mr-2"></span>
+                            🟢 TEDAVİ SONRASI ({formData.photos.filter(p => p.type === 'after').length})
+                          </h5>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {formData.photos.filter(p => p.type === 'after').map((photo, index) => (
+                              <div key={index} className="relative group bg-slate-700/50 rounded-lg p-2 border border-emerald-600/30 hover:border-emerald-500/50 transition-all duration-200">
+                                <div className="relative">
+                                  <img
+                                    src={photo.url}
+                                    alt={`after ${index + 1}`}
+                                    className="w-full h-24 object-cover rounded-lg border-2 border-emerald-500/50 group-hover:border-emerald-400/70 transition-colors duration-200"
+                                  />
+                                  
+                                  {/* Treatment Info */}
+                                  <div className="absolute bottom-2 left-2 right-2 bg-emerald-900/80 text-white text-xs p-2 rounded-lg backdrop-blur-sm">
+                                    <div className="font-semibold text-center mb-1">
+                                      {photo.treatments.join(', ')}
+                                    </div>
+                                    <div className="text-center text-emerald-200 text-xs">
+                                      {new Date(photo.uploadedAt).toLocaleDateString('tr-TR', {
+                                        day: '2-digit',
+                                        month: '2-digit',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                      })}
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Remove Button */}
+                                  <button
+                                    type="button"
+                                    onClick={() => removePhotoWithDetails(photo.url)}
+                                    className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center text-sm hover:bg-red-600 hover:scale-110 shadow-lg"
+                                    title="Fotoğrafı kaldır"
+                                  >
+                                    ×
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -785,6 +915,105 @@ export default function NewPatientPage() {
           </button>
         </div>
       </main>
+
+      {/* Photo Upload Modal */}
+      {showPhotoModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-800 rounded-2xl p-6 w-full max-w-md border border-slate-600/50">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-white">📸 Fotoğraf Bilgileri</h3>
+              <button
+                onClick={closeModal}
+                className="text-slate-400 hover:text-white transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              {/* Selected Files Info */}
+              <div className="bg-slate-700/50 rounded-lg p-3">
+                <p className="text-sm text-slate-300">
+                  <span className="font-semibold">{selectedFiles?.length || 0}</span> fotoğraf seçildi
+                </p>
+              </div>
+              
+              {/* Photo Type Selection */}
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-3">Fotoğraf Türü</label>
+                <div className="space-y-2">
+                  <label className="flex items-center space-x-3 p-3 bg-slate-700/50 rounded-lg cursor-pointer hover:bg-slate-700/70 transition-colors">
+                    <input
+                      type="radio"
+                      name="photoType"
+                      value="before"
+                      checked={modalPhotoType === 'before'}
+                      onChange={(e) => setModalPhotoType(e.target.value as 'before' | 'after')}
+                      className="w-4 h-4 text-blue-500 focus:ring-blue-500"
+                    />
+                    <div className="flex items-center space-x-2">
+                      <span className="text-2xl">🔵</span>
+                      <span className="text-white font-medium">Tedavi Öncesi</span>
+                    </div>
+                  </label>
+                  
+                  <label className="flex items-center space-x-3 p-3 bg-slate-700/50 rounded-lg cursor-pointer hover:bg-slate-700/70 transition-colors">
+                    <input
+                      type="radio"
+                      name="photoType"
+                      value="after"
+                      checked={modalPhotoType === 'after'}
+                      onChange={(e) => setModalPhotoType(e.target.value as 'before' | 'after')}
+                      className="w-4 h-4 text-emerald-500 focus:ring-emerald-500"
+                    />
+                    <div className="flex items-center space-x-2">
+                      <span className="text-2xl">🟢</span>
+                      <span className="text-white font-medium">Tedavi Sonrası</span>
+                    </div>
+                  </label>
+                </div>
+              </div>
+              
+              {/* Treatment Input */}
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Uygulanan İşlem</label>
+                <input
+                  type="text"
+                  value={modalPhotoTreatment}
+                  onChange={(e) => setModalPhotoTreatment(e.target.value)}
+                  placeholder="Örn: Botoks, Dolgu, Lazer..."
+                  className="w-full py-3 px-4 bg-slate-700/50 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              
+              {/* Action Buttons */}
+              <div className="flex space-x-3 pt-4">
+                <button
+                  onClick={closeModal}
+                  className="flex-1 py-3 px-4 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-colors"
+                >
+                  İptal
+                </button>
+                <button
+                  onClick={handleModalUpload}
+                  disabled={!modalPhotoTreatment.trim()}
+                  className={`flex-1 py-3 px-4 rounded-lg font-medium transition-colors ${
+                    modalPhotoTreatment.trim()
+                      ? modalPhotoType === 'before'
+                        ? 'bg-blue-500 text-white hover:bg-blue-600'
+                        : 'bg-emerald-500 text-white hover:bg-emerald-600'
+                      : 'bg-slate-600 text-slate-400 cursor-not-allowed'
+                  }`}
+                >
+                  {modalPhotoType === 'before' ? '🔵 Yükle' : '🟢 Yükle'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -132,6 +132,7 @@ export const usePatientStore = create<PatientStore>()(
         if (patient) {
           return {
             ...patient,
+            tcId: patient.tcId || '',
             photos: patient.photos || [],
             selectedTreatments: patient.selectedTreatments || [],
             treatmentNotes: patient.treatmentNotes || '',
@@ -149,6 +150,7 @@ export const usePatientStore = create<PatientStore>()(
       getAllPatients: () => {
         return get().patients.map(patient => ({
           ...patient,
+          tcId: patient.tcId || '',
           photos: patient.photos || [],
           selectedTreatments: patient.selectedTreatments || [],
           treatmentNotes: patient.treatmentNotes || '',
@@ -206,6 +208,7 @@ export const usePatientStore = create<PatientStore>()(
           return {
             patients: state.patients.map(patient => ({
               ...patient,
+              tcId: patient.tcId || '',
               photos: patient.photos || [],
               selectedTreatments: patient.selectedTreatments || [],
               treatmentNotes: patient.treatmentNotes || '',
@@ -224,6 +227,7 @@ export const usePatientStore = create<PatientStore>()(
         if (state) {
           const updatedPatients = state.patients.map(patient => ({
             ...patient,
+            tcId: patient.tcId || '',
             photos: patient.photos || [],
             selectedTreatments: patient.selectedTreatments || [],
             treatmentNotes: patient.treatmentNotes || '',
