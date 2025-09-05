@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Header from '@/components/Header'
 import { useAuthStore } from '@/stores/authStore'
-import { usePatientStore } from '@/stores/patientStore'
+import { usePatientStore, Patient, PatientPhoto } from '@/stores/patientStore'
 import { useAppointmentStore } from '@/stores/appointmentStore'
 
 interface TreatmentCategory {
@@ -13,12 +13,6 @@ interface TreatmentCategory {
   treatments: string[]
 }
 
-interface PatientPhoto {
-  url: string
-  treatments: string[]
-  type: 'before' | 'after'
-  uploadedAt: string
-}
 
 interface PatientFormData {
   // Kişisel Bilgiler
@@ -46,8 +40,6 @@ interface PatientFormData {
   medications: string
   medicalHistory: string
   notes: string
-  
-  // Randevu Bilgileri
   appointments: Array<{
     treatment: string
     date: string
@@ -61,7 +53,7 @@ interface PatientFormData {
 export default function NewPatientPage() {
   const router = useRouter()
   const { user, checkAuth, isLoading: authLoading } = useAuthStore()
-  const { addPatient } = usePatientStore()
+  const { addPatient, isLoading: patientsLoading, error: patientsError } = usePatientStore()
   const { addAppointment } = useAppointmentStore()
   const [isLoading, setIsLoading] = useState(false)
   const [mounted, setMounted] = useState(false)
@@ -371,14 +363,24 @@ export default function NewPatientPage() {
         allergies: formData.allergies.trim(),
         medications: formData.medications.trim(),
         medicalHistory: formData.medicalHistory.trim(),
-        notes: formData.notes.trim()
+        notes: formData.notes.trim(),
+        appointments: formData.appointments,
+        sameDayTreatments: formData.sameDayTreatments
       }
 
       console.log('Form Data TC ID:', formData.tcId)
       console.log('Patient Data TC ID:', patientData.tcId)
+      console.log('Selected Treatments:', formData.selectedTreatments)
+      console.log('Appointments:', formData.appointments)
+      console.log('Photos:', formData.photos)
+      console.log('Full Patient Data:', patientData)
 
-      // Add patient
-      addPatient(patientData)
+      // Add patient via API
+      const success = await addPatient(patientData)
+      
+      if (!success) {
+        throw new Error('Hasta oluşturulamadı')
+      }
 
       // Create appointments for scheduled treatments
       for (const appointment of formData.appointments) {

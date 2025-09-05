@@ -11,7 +11,15 @@ export default function EditPatientPage() {
   const router = useRouter()
   const params = useParams()
   const { user, checkAuth, isLoading: authLoading } = useAuthStore()
-  const { getPatient, updatePatient } = usePatientStore()
+  const { 
+    getPatient, 
+    fetchPatient, 
+    updatePatient,
+    uploadPhotos,
+    deletePhoto,
+    isLoading: patientsLoading,
+    error: patientsError
+  } = usePatientStore()
   const { addAppointment } = useAppointmentStore()
   
   const [isLoading, setIsLoading] = useState(false)
@@ -72,40 +80,44 @@ export default function EditPatientPage() {
 
   useEffect(() => {
     if (params.id && typeof params.id === 'string') {
-      const foundPatient = getPatient(params.id)
-      if (foundPatient) {
-        setPatient(foundPatient)
-        // Pre-populate form with existing data
-        setFormData({
-          name: foundPatient.name,
-          phone: foundPatient.phone,
-          email: foundPatient.email,
-          birthDate: foundPatient.birthDate,
-          gender: foundPatient.gender,
-          address: foundPatient.address,
-          selectedTreatments: foundPatient.selectedTreatments,
-          treatmentNotes: foundPatient.treatmentNotes,
-          beforePhotos: foundPatient.beforePhotos,
-          afterPhotos: foundPatient.afterPhotos,
-          photos: foundPatient.photos || [],
-          photoType: 'before',
-          photoTreatment: '',
-          allergies: foundPatient.allergies,
-          medications: foundPatient.medications,
-          medicalHistory: foundPatient.medicalHistory,
-          notes: foundPatient.notes,
-          hasAppointment: false,
-          appointmentDate: new Date().toISOString().split('T')[0],
-          appointmentTime: '09:00',
-          appointmentDuration: 60,
-          appointmentTreatment: '',
-          appointmentNotes: ''
-        })
-      } else {
-        router.push('/patients?error=not-found')
-      }
+      loadPatient(params.id)
     }
-  }, [params.id, getPatient, router])
+  }, [params.id])
+
+  const loadPatient = async (patientId: string) => {
+    const foundPatient = await fetchPatient(patientId)
+    if (foundPatient) {
+      setPatient(foundPatient)
+      // Pre-populate form with existing data
+      setFormData({
+        name: foundPatient.name,
+        phone: foundPatient.phone,
+        email: foundPatient.email,
+        birthDate: foundPatient.birthDate,
+        gender: foundPatient.gender,
+        address: foundPatient.address,
+        selectedTreatments: foundPatient.selectedTreatments,
+        treatmentNotes: foundPatient.treatmentNotes,
+        beforePhotos: foundPatient.beforePhotos,
+        afterPhotos: foundPatient.afterPhotos,
+        photos: foundPatient.photos || [],
+        photoType: 'before',
+        photoTreatment: '',
+        allergies: foundPatient.allergies,
+        medications: foundPatient.medications,
+        medicalHistory: foundPatient.medicalHistory,
+        notes: foundPatient.notes,
+        hasAppointment: false,
+        appointmentDate: new Date().toISOString().split('T')[0],
+        appointmentTime: '09:00',
+        appointmentDuration: 60,
+        appointmentTreatment: '',
+        appointmentNotes: ''
+      })
+    } else {
+      router.push('/patients?error=not-found')
+    }
+  }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
@@ -221,13 +233,17 @@ export default function EditPatientPage() {
         notes: formData.notes.trim()
       }
 
-      // Update in store
-      updatePatient(patient.id, updatedPatientData)
+      // Update via API
+      const success = await updatePatient(patient._id, updatedPatientData)
+      
+      if (!success) {
+        throw new Error('Hasta güncellenemedi')
+      }
 
       // Create appointment if requested
       if (formData.hasAppointment) {
         const appointmentData = {
-          patientId: patient.id,
+          patientId: patient._id,
           patientName: formData.name.trim(),
           date: formData.appointmentDate,
           time: formData.appointmentTime,
@@ -240,7 +256,7 @@ export default function EditPatientPage() {
       }
 
       // Success - redirect to patient detail
-      router.push(`/patients/${patient.id}?success=updated`)
+      router.push(`/patients/${patient._id}?success=updated`)
     } catch (error) {
       console.error('Error updating patient:', error)
       alert(error instanceof Error ? error.message : 'Hasta güncellenirken bir hata oluştu')
@@ -253,6 +269,40 @@ export default function EditPatientPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-900">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      </div>
+    )
+  }
+
+  if (patientsLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+        <Header />
+        <div className="flex items-center justify-center py-20">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-2 border-slate-600 border-t-slate-300 mx-auto mb-4"></div>
+            <p className="text-slate-300">Hasta bilgileri yükleniyor...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (patientsError) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+        <Header />
+        <div className="flex items-center justify-center py-20">
+          <div className="text-center">
+            <div className="text-red-400 text-6xl mb-4">⚠️</div>
+            <p className="text-red-300 text-lg mb-4">{patientsError}</p>
+            <button 
+              onClick={() => loadPatient(params.id as string)}
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Tekrar Dene
+            </button>
+          </div>
+        </div>
       </div>
     )
   }
@@ -283,7 +333,7 @@ export default function EditPatientPage() {
               </p>
             </div>
             <button
-              onClick={() => router.push(`/patients/${patient.id}`)}
+              onClick={() => router.push(`/patients/${patient._id}`)}
               className="btn-secondary"
             >
               <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">

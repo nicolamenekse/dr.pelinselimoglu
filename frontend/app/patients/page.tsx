@@ -12,7 +12,14 @@ export default function PatientsPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { user, checkAuth, isLoading } = useAuthStore()
-  const { patients, deletePatient, getAllPatients } = usePatientStore()
+  const { 
+    patients, 
+    isLoading: patientsLoading, 
+    error: patientsError,
+    fetchPatients, 
+    deletePatient, 
+    getAllPatients 
+  } = usePatientStore()
   const { appointments, getAppointmentsByPatient, syncAppointmentsWithPatients } = useAppointmentStore()
   
   const [searchTerm, setSearchTerm] = useState('')
@@ -28,6 +35,13 @@ export default function PatientsPage() {
   useEffect(() => {
     checkAuth()
   }, [checkAuth])
+
+  // Fetch patients when user is authenticated
+  useEffect(() => {
+    if (user && !isLoading) {
+      fetchPatients()
+    }
+  }, [user, isLoading, fetchPatients])
 
   useEffect(() => {
     setMounted(true)
@@ -53,12 +67,12 @@ export default function PatientsPage() {
       
       // Her hasta için randevu verilerini yükle
       patients.forEach(patient => {
-        const patientAppointments = getAppointmentsByPatient(patient.id)
-        console.log(`Patient ${patient.id} (${patient.name}) appointments:`, patientAppointments)
-        console.log(`Patient ID type:`, typeof patient.id, `Value:`, patient.id)
+        const patientAppointments = getAppointmentsByPatient(patient._id)
+        console.log(`Patient ${patient._id} (${patient.name}) appointments:`, patientAppointments)
+        console.log(`Patient ID type:`, typeof patient._id, `Value:`, patient._id)
         
         // Bu hasta ID'sinin randevularda olup olmadığını kontrol et
-        const hasMatchingAppointments = appointments.some(apt => apt.patientId === patient.id)
+        const hasMatchingAppointments = appointments.some(apt => apt.patientId === patient._id)
         console.log(`Patient ${patient.name} has matching appointments:`, hasMatchingAppointments)
         
         if (appointments.length > 0) {
@@ -131,7 +145,7 @@ export default function PatientsPage() {
     setCurrentPage(1)
   }, [searchTerm, filterGender, filterTreatment, sortBy, sortOrder])
 
-  const handleDeletePatient = (id: string, name: string) => {
+  const handleDeletePatient = async (id: string, name: string) => {
     // Hasta randevularını kontrol et
     const patientAppointments = getAppointmentsByPatient(id)
     const hasAppointments = patientAppointments.length > 0
@@ -157,12 +171,18 @@ export default function PatientsPage() {
     }
     
     if (confirm(confirmMessage)) {
-      deletePatient(id)
-      // Başarı mesajı göster
-      if (hasAppointments) {
-        alert(`${name} adlı hasta ve ${patientAppointments.length} randevusu başarıyla silindi.`)
+      const success = await deletePatient(id)
+      if (success) {
+        // Başarı mesajı göster
+        if (hasAppointments) {
+          alert(`${name} adlı hasta ve ${patientAppointments.length} randevusu başarıyla silindi.`)
+        } else {
+          alert(`${name} adlı hasta başarıyla silindi.`)
+        }
+        // Refresh patients list
+        await fetchPatients()
       } else {
-        alert(`${name} adlı hasta başarıyla silindi.`)
+        alert('Hasta silinirken bir hata oluştu.')
       }
     }
   }
@@ -190,41 +210,18 @@ export default function PatientsPage() {
   }
 
   const getCompletedTreatments = (patientId: string) => {
-    const patient = getAllPatients().find(p => p.id === patientId)
+    const patient = getAllPatients().find(p => p._id === patientId)
     if (!patient) return []
     
-    const patientAppointments = getAppointmentsByPatient(patientId)
-    
-    // Randevulardan tamamlanan tedaviler
-    const completedAppointments = patientAppointments
-      .filter(apt => apt.status === 'completed')
-      .sort((a, b) => {
-        // Sort by date descending (most recent first)
-        const dateA = new Date(a.date + 'T' + a.time)
-        const dateB = new Date(b.date + 'T' + b.time)
-        return dateB.getTime() - dateA.getTime()
-      })
-      .map(apt => ({
-        treatment: apt.treatment,
-        date: apt.date,
-        time: apt.time
-      }))
-    
-    // Hasta verisinden selectedTreatments (eğer randevu yoksa)
-    const selectedTreatments = patient.selectedTreatments || []
-    const selectedTreatmentData = selectedTreatments.map((treatment: string) => ({
+    // Hem selectedTreatments hem de sameDayTreatments'ı kullan
+    const allTreatments = [...(patient.selectedTreatments || []), ...(patient.sameDayTreatments || [])]
+    const selectedTreatmentData = allTreatments.map((treatment: string) => ({
       treatment,
       date: new Date().toISOString().split('T')[0], // Bugünün tarihi
       time: '00:00'
     }))
     
-    // Her iki kaynaktan gelen tedavileri birleştir ve tekrarları kaldır
-    const allTreatments = [...completedAppointments, ...selectedTreatmentData]
-    const uniqueTreatments = allTreatments.filter((treatment, index, self) => 
-      index === self.findIndex(t => t.treatment === treatment.treatment)
-    )
-    
-    return uniqueTreatments
+    return selectedTreatmentData
   }
 
   const formatDate = (dateString: string) => {
@@ -372,6 +369,42 @@ export default function PatientsPage() {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800">
         <div className="flex items-center justify-center p-8">
           <div className="animate-spin rounded-full h-8 w-8 border-2 border-slate-600 border-t-slate-300"></div>
+        </div>
+      </div>
+    )
+  }
+
+  // Loading state
+  if (patientsLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+        <Header />
+        <div className="flex items-center justify-center py-20">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-2 border-slate-600 border-t-slate-300 mx-auto mb-4"></div>
+            <p className="text-slate-300">Hastalar yükleniyor...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Error state
+  if (patientsError) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+        <Header />
+        <div className="flex items-center justify-center py-20">
+          <div className="text-center">
+            <div className="text-red-400 text-6xl mb-4">⚠️</div>
+            <p className="text-red-300 text-lg mb-4">{patientsError}</p>
+            <button 
+              onClick={() => fetchPatients()}
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Tekrar Dene
+            </button>
+          </div>
         </div>
       </div>
     )
@@ -576,12 +609,12 @@ export default function PatientsPage() {
                 </thead>
                 <tbody className="bg-slate-800/30 divide-y divide-slate-600/50">
                   {paginatedPatients.map((patient) => {
-                    const appointmentInfo = formatAppointmentInfo(patient.id)
+                    const appointmentInfo = formatAppointmentInfo(patient._id)
                     return (
-                      <tr key={patient.id} className="hover:bg-slate-750/50 transition-all duration-300 group cursor-pointer">
+                      <tr key={patient._id} className="hover:bg-slate-750/50 transition-all duration-300 group cursor-pointer">
                         <td className="px-8 py-6 whitespace-nowrap">
                           <Link
-                            href={`/patients/${patient.id}`}
+                            href={`/patients/${patient._id}`}
                             className="block"
                           >
                             <div className="flex items-center">
@@ -608,7 +641,7 @@ export default function PatientsPage() {
                         
                         <td className="px-8 py-6 whitespace-nowrap">
                           <Link
-                            href={`/patients/${patient.id}`}
+                            href={`/patients/${patient._id}`}
                             className="block"
                           >
                             <div className="text-lg font-semibold text-white group-hover:text-blue-300 transition-colors duration-300">{patient.phone}</div>
@@ -620,13 +653,13 @@ export default function PatientsPage() {
                         
                                                  <td className="px-8 py-6 whitespace-nowrap">
                            <Link
-                             href={`/patients/${patient.id}`}
+                             href={`/patients/${patient._id}`}
                              className="block"
                            >
                                                            <div className="space-y-3">
                                 {/* Gerçekleştirilen İşlemler */}
                                 {(() => {
-                                  const completedTreatments = getCompletedTreatments(patient.id)
+                                  const completedTreatments = getCompletedTreatments(patient._id)
                                   if (completedTreatments.length > 0) {
                                     return (
                                       <div className="space-y-1">
@@ -660,7 +693,7 @@ export default function PatientsPage() {
                                                  <td className="px-8 py-6 whitespace-nowrap text-right text-sm font-medium">
                            <div className="flex items-center justify-end space-x-3">
                              <Link
-                               href={`/patients/${patient.id}/edit`}
+                               href={`/patients/${patient._id}/edit`}
                                onClick={(e) => e.stopPropagation()}
                                className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white text-sm font-medium rounded-lg hover:from-emerald-600 hover:to-emerald-700 transition-all duration-300 shadow-md hover:shadow-lg transform hover:scale-105"
                              >
@@ -673,7 +706,7 @@ export default function PatientsPage() {
                                onClick={(e) => {
                                  e.preventDefault()
                                  e.stopPropagation()
-                                 handleDeletePatient(patient.id, patient.name)
+                                 handleDeletePatient(patient._id, patient.name)
                                }}
                                className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white text-sm font-medium rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-300 shadow-md hover:shadow-lg transform hover:scale-105"
                              >
@@ -695,11 +728,11 @@ export default function PatientsPage() {
             <div className="p-8">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-stretch">
                 {paginatedPatients.map((patient) => {
-                  const appointmentInfo = formatAppointmentInfo(patient.id)
+                  const appointmentInfo = formatAppointmentInfo(patient._id)
                   return (
                                          <Link
-                       key={patient.id}
-                       href={`/patients/${patient.id}`}
+                       key={patient._id}
+                                                    href={`/patients/${patient._id}`}
                        className="block bg-gradient-to-br from-slate-750/50 to-slate-700/50 border border-slate-600/50 rounded-2xl p-6 shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-105 backdrop-blur-md group cursor-pointer h-full flex flex-col"
                      >
                       <div className="flex items-center mb-6">
@@ -748,7 +781,7 @@ export default function PatientsPage() {
                          <div className="space-y-3">
                             {/* Gerçekleştirilen İşlemler */}
                             {(() => {
-                              const completedTreatments = getCompletedTreatments(patient.id)
+                              const completedTreatments = getCompletedTreatments(patient._id)
                               if (completedTreatments.length > 0) {
                                 return (
                                   <div className="space-y-1">
@@ -780,7 +813,7 @@ export default function PatientsPage() {
                       
                                                <div className="flex space-x-3 pt-6 border-t border-slate-600/50 mt-auto">
                          <Link
-                           href={`/patients/${patient.id}/edit`}
+                           href={`/patients/${patient._id}/edit`}
                            onClick={(e) => e.stopPropagation()}
                            className="flex-1 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white text-center py-3 px-4 rounded-xl text-sm font-medium hover:from-emerald-600 hover:to-emerald-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
                          >
@@ -793,7 +826,7 @@ export default function PatientsPage() {
                            onClick={(e) => {
                              e.preventDefault()
                              e.stopPropagation()
-                             handleDeletePatient(patient.id, patient.name)
+                             handleDeletePatient(patient._id, patient.name)
                            }}
                            className="flex-1 bg-gradient-to-r from-red-500 to-red-600 text-white text-center py-3 px-4 rounded-xl text-sm font-medium hover:from-red-600 hover:to-red-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
                          >

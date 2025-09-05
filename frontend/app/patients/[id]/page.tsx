@@ -12,7 +12,14 @@ export default function PatientDetailPage() {
   const router = useRouter()
   const params = useParams()
   const { user, checkAuth, isLoading } = useAuthStore()
-  const { getPatient, addPatientPhoto, removePatientPhoto } = usePatientStore()
+  const { 
+    getPatient, 
+    fetchPatient, 
+    uploadPhotos,
+    deletePhoto,
+    isLoading: patientsLoading,
+    error: patientsError
+  } = usePatientStore()
   const { getAppointmentsByPatient } = useAppointmentStore()
   
   const [patient, setPatient] = useState<Patient | null>(null)
@@ -40,19 +47,61 @@ export default function PatientDetailPage() {
 
   useEffect(() => {
     if (params.id && typeof params.id === 'string') {
-      const foundPatient = getPatient(params.id)
-      if (foundPatient) {
-        setPatient(foundPatient)
-      } else {
-        router.push('/patients?error=not-found')
-      }
+      loadPatient(params.id)
     }
-  }, [params.id, getPatient, router])
+  }, [params.id])
+
+  const loadPatient = async (patientId: string) => {
+    const foundPatient = await fetchPatient(patientId)
+    if (foundPatient) {
+      console.log('Loaded patient data:', foundPatient)
+      console.log('Selected treatments:', foundPatient.selectedTreatments)
+      console.log('Appointments:', foundPatient.appointments)
+      console.log('Photos:', foundPatient.photos)
+      setPatient(foundPatient)
+    } else {
+      router.push('/patients?error=not-found')
+    }
+  }
 
   if (isLoading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      </div>
+    )
+  }
+
+  if (patientsLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+        <Header />
+        <div className="flex items-center justify-center py-20">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-2 border-slate-600 border-t-slate-300 mx-auto mb-4"></div>
+            <p className="text-slate-300">Hasta bilgileri yükleniyor...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (patientsError) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+        <Header />
+        <div className="flex items-center justify-center py-20">
+          <div className="text-center">
+            <div className="text-red-400 text-6xl mb-4">⚠️</div>
+            <p className="text-red-300 text-lg mb-4">{patientsError}</p>
+            <button 
+              onClick={() => loadPatient(params.id as string)}
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Tekrar Dene
+            </button>
+          </div>
+        </div>
       </div>
     )
   }
@@ -125,22 +174,13 @@ export default function PatientDetailPage() {
         const fileArray = Array.from(selectedFiles)
         const treatmentList = modalPhotoTreatment.split(',').map(t => t.trim()).filter(t => t.length > 0)
         
-        for (const file of fileArray) {
-          const base64Url = await fileToBase64(file)
-          const newPhoto: PatientPhoto = {
-            url: base64Url,
-            treatments: treatmentList,
-            type: modalPhotoType,
-            uploadedAt: new Date().toISOString()
-          }
-          
-          addPatientPhoto(patient.id, newPhoto)
-        }
+        const success = await uploadPhotos(patient._id, fileArray, modalPhotoTreatment, modalPhotoType)
         
-        // Update local patient state
-        const updatedPatient = getPatient(patient.id)
-        if (updatedPatient) {
-          setPatient(updatedPatient)
+        if (success) {
+          // Reload patient data to get updated photos
+          await loadPatient(patient._id)
+        } else {
+          throw new Error('Fotoğraf yüklenemedi')
         }
         
         setShowPhotoModal(false)
@@ -170,13 +210,18 @@ export default function PatientDetailPage() {
     setSelectedPhotoForViewer(null)
   }
 
-  const removePhoto = (photoUrl: string) => {
+  const removePhoto = async (photoUrl: string) => {
     if (patient) {
-      removePatientPhoto(patient.id, photoUrl)
-      // Update local patient state
-      const updatedPatient = getPatient(patient.id)
-      if (updatedPatient) {
-        setPatient(updatedPatient)
+      // Extract photo ID from URL
+      const photoId = photoUrl.split('/').pop()
+      if (photoId) {
+        const success = await deletePhoto(photoId)
+        if (success) {
+          // Reload patient data to get updated photos
+          await loadPatient(patient._id)
+        } else {
+          alert('Fotoğraf silinirken bir hata oluştu')
+        }
       }
     }
   }
@@ -238,7 +283,7 @@ export default function PatientDetailPage() {
             
             <div className="flex space-x-3">
               <Link
-                href={`/patients/${patient.id}/edit`}
+                href={`/patients/${patient._id}/edit`}
                 className="inline-flex items-center px-6 py-3 text-sm font-semibold rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 text-white border border-slate-600/50 shadow-lg hover:shadow-xl hover:from-blue-600 hover:to-purple-700 transition-all"
               >
                 <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -349,13 +394,13 @@ export default function PatientDetailPage() {
                 <span className="mr-3">💊</span>
                 Tedavi Bilgileri
               </h2>
-              {patient.selectedTreatments.length > 0 ? (
+              {(patient.selectedTreatments.length > 0 || patient.sameDayTreatments.length > 0) ? (
                 <div className="mb-6">
                   <h3 className="text-lg font-semibold text-white mb-4">Seçilen Tedaviler</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {patient.selectedTreatments.map((treatment, index) => {
+                    {[...(patient.selectedTreatments || []), ...(patient.sameDayTreatments || [])].map((treatment, index) => {
                       // Bu tedavi için randevu bilgisi var mı kontrol et
-                      const appointments = getAppointmentsByPatient(patient.id)
+                      const appointments = getAppointmentsByPatient(patient._id)
                       const treatmentAppointment = appointments?.find(app => 
                         app.treatment === treatment && app.status === 'scheduled'
                       )
@@ -382,7 +427,8 @@ export default function PatientDetailPage() {
               ) : null}
 
               {(() => {
-                const apts = getAppointmentsByPatient(patient.id) || []
+                // API'den gelen appointments verisini kullan
+                const apts = patient.appointments || []
                 const createdDay = new Date(patient.createdAt).toISOString().split('T')[0]
                 // Bazı tarayıcılarda locale/timezone farkından dolayı karşılaştırma sorunlarını önlemek için normalize et
                 const normalize = (d: string) => new Date(d).toISOString().split('T')[0]
@@ -432,7 +478,8 @@ export default function PatientDetailPage() {
                 Randevu Bilgileri
               </h2>
               {(() => {
-                const all = getAppointmentsByPatient(patient.id) || []
+                // API'den gelen appointments verisini kullan
+                const all = patient.appointments || []
                 const now = new Date()
                 const upcoming = all.filter(a => {
                   const d = new Date(a.date + 'T' + a.time)
@@ -709,7 +756,7 @@ export default function PatientDetailPage() {
               </h2>
               <div className="space-y-3">
                 <Link
-                  href={`/patients/${patient.id}/edit`}
+                  href={`/patients/${patient._id}/edit`}
                   className="w-full bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors duration-200 flex items-center justify-center font-medium"
                 >
                   <span className="mr-2">✏️</span>
